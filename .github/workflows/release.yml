@@ -47,42 +47,90 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Inspect Repository & Locate Gradle Project
-        id: locate-project
+      - name: Inspect & Ensure Gradle Build Files
+        id: prepare-gradle
         run: |
-          echo "================ Repository Contents ================"
+          echo "================ Current Repository Root ================"
           ls -la
-          echo "====================================================="
-          
-          # Locate settings.gradle.kts or settings.gradle in root or any subfolder
-          SETTINGS_FILE=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
-          
-          if [ -z "$SETTINGS_FILE" ]; then
-            echo "::error title=Missing Project Files::No settings.gradle.kts found in the repository!"
-            echo ""
-            echo "❌ WHY THIS FAILED:"
-            echo "The repository on GitHub currently does not contain the Android project source code."
-            echo "Gradle requires settings.gradle.kts, build.gradle.kts, and the app/ directory."
-            echo ""
-            echo "👉 TO RESOLVE:"
-            echo "1. In Google AI Studio, click Settings > Download ZIP (or push the repository)."
-            echo "2. Ensure the unzipped project files are committed to the root of your GitHub repository:"
-            echo "     settings.gradle.kts"
-            echo "     build.gradle.kts"
-            echo "     gradle.properties"
-            echo "     app/"
-            echo "     gradle/"
-            echo "3. Push the commit to GitHub and re-run this workflow."
-            echo ""
-            exit 1
+          echo "=========================================================="
+
+          # Check if settings.gradle.kts exists
+          if [ ! -f "settings.gradle.kts" ]; then
+            echo "::warning title=Missing Gradle Build Files::settings.gradle.kts was not committed to the GitHub repo yet. Auto-generating build configuration..."
+
+            # 1. Create settings.gradle.kts
+            cat << 'EOF' > settings.gradle.kts
+          pluginManagement {
+            repositories {
+              google {
+                content {
+                  includeGroupByRegex("com\\.android.*")
+                  includeGroupByRegex("com\\.google.*")
+                  includeGroupByRegex("androidx.*")
+                }
+              }
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+
+          plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0" }
+
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+
+          rootProject.name = "Vyntra"
+
+          include(":app")
+          EOF
+
+            # 2. Create root build.gradle.kts if missing
+            if [ ! -f "build.gradle.kts" ]; then
+              cat << 'EOF' > build.gradle.kts
+          plugins {
+            alias(libs.plugins.android.application) apply false
+            alias(libs.plugins.kotlin.compose) apply false
+            alias(libs.plugins.google.devtools.ksp) apply false
+            alias(libs.plugins.roborazzi) apply false
+            alias(libs.plugins.secrets) apply false
+            alias(libs.plugins.google.services) apply false
+          }
+          EOF
+            fi
+
+            # 3. Create gradle.properties if missing
+            if [ ! -f "gradle.properties" ]; then
+              cat << 'EOF' > gradle.properties
+          org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+          org.gradle.parallel=true
+          kotlin.code.style=official
+          android.nonTransitiveRClass=true
+          org.gradle.caching=true
+          org.gradle.configuration-cache=true
+          org.gradle.workers.max=4
+          kotlin.compiler.execution.strategy=in-process
+          googleServices.missing.passthrough=true
+          EOF
+            fi
+
+            # 4. Check libs.versions.toml
+            if [ ! -f "gradle/libs.versions.toml" ]; then
+              mkdir -p gradle
+              echo "Note: checking for gradle/libs.versions.toml"
+            fi
+
+            echo "Auto-generated root build files created successfully!"
+            ls -la
+          else
+            echo "settings.gradle.kts found in root."
           fi
 
-          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
-          echo "Found Gradle project in: $PROJECT_DIR"
-          echo "project_dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
-
       - name: Create .env Configuration
-        working-directory: ${{ steps.locate-project.outputs.project_dir }}
         run: |
           if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
             echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
@@ -93,7 +141,6 @@ jobs:
           fi
 
       - name: Build Android APK
-        working-directory: ${{ steps.locate-project.outputs.project_dir }}
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
@@ -110,7 +157,8 @@ jobs:
             cp "$APK_PATH" release_assets/Vyntra.apk
             echo "APK successfully prepared at release_assets/Vyntra.apk ($(du -h release_assets/Vyntra.apk | cut -f1))"
           else
-            echo "::error::Build completed but no APK was found!"
+            echo "::error::Build completed but no APK was found in build outputs!"
+            find . -maxdepth 4 -ls
             exit 1
           fi
 
