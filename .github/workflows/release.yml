@@ -252,7 +252,48 @@ jobs:
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-          echo "All required Gradle files are verified!"
+          # 7. Ensure Android Resources required by AndroidManifest exist
+          mkdir -p app/src/main/res/xml app/src/main/res/values app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26
+
+          if [ ! -f "app/src/main/res/values/themes.xml" ]; then
+            echo "Auto-creating app/src/main/res/values/themes.xml..."
+            cat << 'EOF' > app/src/main/res/values/themes.xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar" />
+</resources>
+EOF
+          fi
+
+          if [ ! -f "app/src/main/res/xml/data_extraction_rules.xml" ]; then
+            echo "Auto-creating app/src/main/res/xml/data_extraction_rules.xml..."
+            cat << 'EOF' > app/src/main/res/xml/data_extraction_rules.xml
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup />
+</data-extraction-rules>
+EOF
+          fi
+
+          if [ ! -f "app/src/main/res/xml/backup_rules.xml" ]; then
+            echo "Auto-creating app/src/main/res/xml/backup_rules.xml..."
+            cat << 'EOF' > app/src/main/res/xml/backup_rules.xml
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content />
+EOF
+          fi
+
+          if [ ! -f "app/src/main/res/values/strings.xml" ]; then
+            echo "Auto-creating app/src/main/res/values/strings.xml..."
+            cat << 'EOF' > app/src/main/res/values/strings.xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vyntra</string>
+</resources>
+EOF
+          fi
+
+          echo "All required Gradle and Android resource files are verified!"
           ls -la
           ls -la gradle/
 
