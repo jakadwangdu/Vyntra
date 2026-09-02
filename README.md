@@ -6,37 +6,64 @@
 ---
 
 <!-- Badges -->
-[![Download Latest APK](https://img.shields.io/badge/Download-Vyntra.apk-0E0F12?style=for-the-badge&logo=android&logoColor=white)](https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk)
-[![GitHub Release](https://img.shields.io/badge/Release-v1.0.0-orange?style=for-the-badge&logo=github)](https://github.com/skituspanda/Vyntra/releases/latest)
+[![Download Latest APK](https://img.shields.io/badge/Download-Vyntra.apk-0E0F12?style=for-the-badge&logo=android&logoColor=white)](#-how-to-download-and-install)
+[![GitHub Release](https://img.shields.io/badge/Release-v1.0.0-orange?style=for-the-badge&logo=github)](https://github.com/skituspanda/Vyntra/releases)
 [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20(API%2024%2B)-007AFF?style=for-the-badge&logo=android)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=for-the-badge&logo=kotlin)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge)](LICENSE)
 
 ---
 
-## 🚀 Download & Ready to Use
+## 🚀 How to Download and Install
 
-Install **Vyntra** straight onto your Android smartphone or tablet without needing Android Studio or compiling code!
+> ⚠️ **Why the GitHub link gave a 404:**  
+> The URL `https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk` returns a 404 error until the project is pushed to GitHub and a Release is published.
+> Choose one of the instant methods below to get your APK immediately!
 
-### 📥 Direct Download Links
-
-| File | Direct Link | Description |
-| :--- | :--- | :--- |
-| **Vyntra APK** | [👉 **Download Vyntra.apk**](https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk) | Latest pre-compiled APK (Ready to install) |
-| **GitHub Releases** | [🏷️ **Browse All Releases**](https://github.com/skituspanda/Vyntra/releases) | Release notes, changelog, and historical versions |
+### 📥 Method 1: Instant Direct Download (Recommended from AI Studio)
+If you are viewing this project in **Google AI Studio**:
+1. Look at the top-right header menu or open **Project Settings** (gear icon / three dots `...`).
+2. Click **Export** or **Download APK / AAB**.
+3. AI Studio packages and downloads the `.apk` directly to your computer or mobile device immediately!
 
 ---
 
-### 📲 How to Install on Android
+### 📦 Method 2: Export as ZIP & Run in Android Studio
+1. In the AI Studio top menu, select **Download ZIP**.
+2. Unzip the project and open it in **Android Studio**.
+3. Connect your Android phone or use an emulator, then click **Run** (green play button `▶`) or go to **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
 
-1. **Download APK**: Tap [**Download Vyntra.apk**](https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk) directly from your mobile browser.
-2. **Enable Unknown Sources (If Prompted)**:
-   - When the download completes and you open the `.apk`, Android may display *"For your security, your phone is not allowed to install unknown apps from this source"*.
-   - Tap **Settings** in the popup dialog and toggle **Allow from this source**.
-3. **Install**: Tap **Install** on the system confirmation sheet.
-4. **Launch**: Open **Vyntra** from your home screen or app drawer!
+---
 
-> **Note**: The APK is signed with a standard Android certificate. You may see a Google Play Protect prompt asking to verify; simply tap **Install anyway**.
+### 🌐 Method 3: Push to GitHub to Activate the Download URL
+To make `https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk` work automatically:
+1. Create a repository named `Vyntra` on your GitHub account (`https://github.com/new`).
+2. Push your code:
+   ```bash
+   git init
+   git add .
+   git commit -m "feat: initial Vyntra release"
+   git remote add origin https://github.com/skituspanda/Vyntra.git
+   git branch -M main
+   git push -u origin main
+   ```
+3. Create a release tag to trigger the automated GitHub Actions APK builder:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+4. The automated GitHub Action (`.github/workflows/release.yml`) will build `Vyntra.apk` and publish the release. Once complete, the download button will work for anyone!
+
+---
+
+### 📲 How to Install on Your Android Device Once Downloaded
+
+1. **Open the downloaded `Vyntra.apk` file** on your Android device.
+2. **Allow Installation (If Prompted)**:
+   - Android will prompt: *"For your security, your phone is not allowed to install unknown apps from this source"*.
+   - Tap **Settings** and turn on **Allow from this source**.
+3. **Install**: Tap **Install** and then tap **Open**.
+4. **Enjoy Vyntra**!
 
 ---
 
