@@ -47,32 +47,71 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Inspect Repository & Locate Gradle Project
+        id: locate-project
+        run: |
+          echo "================ Repository Contents ================"
+          ls -la
+          echo "====================================================="
+          
+          # Locate settings.gradle.kts or settings.gradle in root or any subfolder
+          SETTINGS_FILE=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
+          
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "::error title=Missing Project Files::No settings.gradle.kts found in the repository!"
+            echo ""
+            echo "❌ WHY THIS FAILED:"
+            echo "The repository on GitHub currently does not contain the Android project source code."
+            echo "Gradle requires settings.gradle.kts, build.gradle.kts, and the app/ directory."
+            echo ""
+            echo "👉 TO RESOLVE:"
+            echo "1. In Google AI Studio, click Settings > Download ZIP (or push the repository)."
+            echo "2. Ensure the unzipped project files are committed to the root of your GitHub repository:"
+            echo "     settings.gradle.kts"
+            echo "     build.gradle.kts"
+            echo "     gradle.properties"
+            echo "     app/"
+            echo "     gradle/"
+            echo "3. Push the commit to GitHub and re-run this workflow."
+            echo ""
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+          echo "Found Gradle project in: $PROJECT_DIR"
+          echo "project_dir=$PROJECT_DIR" >> $GITHUB_OUTPUT
+
       - name: Create .env Configuration
+        working-directory: ${{ steps.locate-project.outputs.project_dir }}
         run: |
           if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
             echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
-          else
+          elif [ -f ".env.example" ]; then
             cp .env.example .env
+          else
+            echo "GEMINI_API_KEY=" > .env
           fi
 
       - name: Build Android APK
+        working-directory: ${{ steps.locate-project.outputs.project_dir }}
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
             ./gradlew assembleDebug --stacktrace
           else
-            gradle assembleDebug --stacktrace || (gradle wrapper && chmod +x ./gradlew && ./gradlew assembleDebug --stacktrace)
+            gradle assembleDebug --stacktrace
           fi
 
       - name: Prepare APK Asset
         run: |
           mkdir -p release_assets
-          APK_PATH=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
-          if [ -f "$APK_PATH" ]; then
+          APK_PATH=$(find . -name "*.apk" -not -path "*/release_assets/*" | head -n 1)
+          if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" release_assets/Vyntra.apk
-            echo "APK ready at release_assets/Vyntra.apk ($(du -h release_assets/Vyntra.apk | cut -f1))"
+            echo "APK successfully prepared at release_assets/Vyntra.apk ($(du -h release_assets/Vyntra.apk | cut -f1))"
           else
-            echo "Error: APK not found!" && exit 1
+            echo "::error::Build completed but no APK was found!"
+            exit 1
           fi
 
       - name: Determine Version Tag
@@ -132,7 +171,6 @@ jobs:
         if: steps.vars.outputs.publish_package == 'true'
         run: |
           IMAGE_NAME="ghcr.io/${{ github.repository }}/vyntra-apk"
-          # Convert to lowercase for Docker repository compliance
           IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
           TAG="${{ steps.vars.outputs.tag }}"
 
