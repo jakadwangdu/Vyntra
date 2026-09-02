@@ -6,7 +6,9 @@
 ---
 
 <!-- Badges -->
-[![Download Latest APK](https://img.shields.io/badge/Download-Vyntra.apk-0E0F12?style=for-the-badge&logo=android&logoColor=white)](#-how-to-download-and-install)
+[![Download Latest APK](https://img.shields.io/badge/Download-Vyntra.apk-0E0F12?style=for-the-badge&logo=android&logoColor=white)](https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk)
+[![GitHub Actions CI/CD](https://img.shields.io/badge/Actions-Trigger%20Build-2ea44f?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/skituspanda/Vyntra/actions)
+[![GitHub Packages](https://img.shields.io/badge/Packages-GHCR%20Docker-007AFF?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/skituspanda/Vyntra/pkgs/container/vyntra-apk)
 [![GitHub Release](https://img.shields.io/badge/Release-v1.0.0-orange?style=for-the-badge&logo=github)](https://github.com/skituspanda/Vyntra/releases)
 [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B%20(API%2024%2B)-007AFF?style=for-the-badge&logo=android)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=for-the-badge&logo=kotlin)](https://kotlinlang.org)
@@ -14,56 +16,104 @@
 
 ---
 
-## 🚀 How to Download and Install
+## 🚀 How to Download the App via GitHub
 
-> ⚠️ **Why the GitHub link gave a 404:**  
-> The URL `https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk` returns a 404 error until the project is pushed to GitHub and a Release is published.
-> Choose one of the instant methods below to get your APK immediately!
+Vyntra supports three primary ways to download and install via GitHub, automated entirely by **GitHub Actions**:
 
-### 📥 Method 1: Instant Direct Download (Recommended from AI Studio)
-If you are viewing this project in **Google AI Studio**:
-1. Look at the top-right header menu or open **Project Settings** (gear icon / three dots `...`).
-2. Click **Export** or **Download APK / AAB**.
-3. AI Studio packages and downloads the `.apk` directly to your computer or mobile device immediately!
-
----
-
-### 📦 Method 2: Export as ZIP & Run in Android Studio
-1. In the AI Studio top menu, select **Download ZIP**.
-2. Unzip the project and open it in **Android Studio**.
-3. Connect your Android phone or use an emulator, then click **Run** (green play button `▶`) or go to **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
-
----
-
-### 🌐 Method 3: Push to GitHub to Activate the Download URL
-To make `https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk` work automatically:
-1. Create a repository named `Vyntra` on your GitHub account (`https://github.com/new`).
-2. Push your code:
-   ```bash
-   git init
-   git add .
-   git commit -m "feat: initial Vyntra release"
-   git remote add origin https://github.com/skituspanda/Vyntra.git
-   git branch -M main
-   git push -u origin main
-   ```
-3. Create a release tag to trigger the automated GitHub Actions APK builder:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-4. The automated GitHub Action (`.github/workflows/release.yml`) will build `Vyntra.apk` and publish the release. Once complete, the download button will work for anyone!
+```
+                  ┌─────────────────────────────────────────┐
+                  │          Trigger GitHub Action          │
+                  │  (Push to main / Git Tag / Web UI / CLI)│
+                  └────────────────────┬────────────────────┘
+                                       │
+                         Builds Vyntra.apk on Runner
+                                       │
+            ┌──────────────────────────┼──────────────────────────┐
+            ▼                          ▼                          ▼
+ ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+ │   GitHub Releases    │  │  GitHub Actions Runs │  │   GitHub Packages    │
+ │ (Direct APK Download)│  │ (Download Artifacts) │  │(GHCR Container Image)│
+ └──────────────────────┘  └──────────────────────┘  └──────────────────────┘
+```
 
 ---
 
-### 📲 How to Install on Your Android Device Once Downloaded
+### 1️⃣ Method 1: Download via GitHub Releases (Direct APK)
 
-1. **Open the downloaded `Vyntra.apk` file** on your Android device.
+The fastest and most direct way for Android phones and tablets:
+
+| Resource | Direct Link | Description |
+| :--- | :--- | :--- |
+| **Latest APK** | [👉 **Download Vyntra.apk**](https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk) | Standalone APK file, ready to install |
+| **All Releases** | [🏷️ **Browse GitHub Releases**](https://github.com/skituspanda/Vyntra/releases) | Changelog, release notes, and version history |
+
+> *Note: If this is a newly created repository, the direct release link activates once you trigger the initial GitHub Actions build or push your first git tag!*
+
+---
+
+### 2️⃣ Method 2: Download via GitHub Actions (Trigger & Download Artifacts)
+
+Every time GitHub Actions runs, it compiles the APK and stores it as a downloadable **Workflow Artifact** (`Vyntra-APK`):
+
+#### How to Trigger the Build:
+1. Go to your repository on GitHub: `https://github.com/skituspanda/Vyntra/actions`.
+2. In the left sidebar, click **Build, Release & Publish Vyntra APK**.
+3. Click the **Run workflow** dropdown on the right:
+   - Version tag: `v1.0.0` (or your custom version)
+   - Publish to GitHub Releases: `true`
+   - Publish to GitHub Packages: `true`
+4. Click the green **Run workflow** button.
+
+#### How to Download the Artifact:
+1. Click on the completed workflow run.
+2. Scroll down to the **Artifacts** section at the bottom of the summary page.
+3. Click **Vyntra-APK** to download the freshly compiled binary immediately!
+
+#### Triggering via GitHub CLI (`gh`):
+```bash
+gh workflow run release.yml -f version_name=v1.0.0
+```
+
+---
+
+### 3️⃣ Method 3: Download via GitHub Packages (GHCR Container Registry)
+
+The APK is also packaged and published to **GitHub Packages** (`ghcr.io`):
+
+```bash
+# Pull the package container
+docker pull ghcr.io/skituspanda/vyntra/vyntra-apk:latest
+
+# Extract the Vyntra.apk from the container
+docker create --name vyntra-temp ghcr.io/skituspanda/vyntra/vyntra-apk:latest
+docker cp vyntra-temp:/dist/Vyntra.apk ./Vyntra.apk
+docker rm vyntra-temp
+```
+
+Direct package URL: [https://github.com/skituspanda/Vyntra/pkgs/container/vyntra-apk](https://github.com/skituspanda/Vyntra/pkgs/container/vyntra-apk)
+
+---
+
+### 📱 In-App Download Feature
+
+You can also trigger downloads and copy GitHub links directly inside the app:
+- Tap the **Cloud Download** icon in the top header of the Dashboard.
+- Or tap the **"Get Vyntra APK"** banner on the main screen.
+- An interactive bottom sheet allows you to:
+  - Download the APK directly.
+  - Open GitHub Actions to trigger a build.
+  - View GitHub Packages.
+  - One-tap copy the direct download URL, GitHub CLI commands, and Docker pull commands.
+
+---
+
+### 📲 How to Install on Android
+
+1. **Download `Vyntra.apk`** to your phone using any of the methods above.
 2. **Allow Installation (If Prompted)**:
-   - Android will prompt: *"For your security, your phone is not allowed to install unknown apps from this source"*.
-   - Tap **Settings** and turn on **Allow from this source**.
-3. **Install**: Tap **Install** and then tap **Open**.
-4. **Enjoy Vyntra**!
+   - If Android shows *"For your security, your phone is not allowed to install unknown apps from this source"*, tap **Settings** and enable **Allow from this source**.
+3. **Install**: Tap **Install** on the system package installer prompt.
+4. **Launch**: Open **Vyntra** from your home screen or app drawer!
 
 ---
 
@@ -99,48 +149,22 @@ To make `https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.a
 
 ---
 
-## 🛠️ GitHub Repository & Release Workflow Setup
+## 🛠️ GitHub Actions Workflow Configuration
 
-This repository is pre-configured with a **GitHub Actions CI/CD workflow** (`.github/workflows/release.yml`) that automatically builds and publishes the APK whenever you release a new version.
+The workflow file is located at [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
-### Option A: Automatic Release via Git Tag (Recommended)
+### Workflow Triggers:
+- **`push` to branches**: `main`, `master`
+- **`push` with tags**: `v*` (e.g. `v1.0.0`)
+- **`workflow_dispatch`**: Manual one-click trigger in the GitHub Actions tab
 
-When you push this repository to your GitHub account (`https://github.com/<YOUR_USERNAME>/<YOUR_REPO>`):
-
-1. **Tag your commit**:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-2. **Watch the Build**: Go to the **Actions** tab on your GitHub repository. The `Build & Release Android APK` workflow will automatically:
-   - Set up Java 17 and Gradle.
-   - Build the APK.
-   - Create a new GitHub Release with the tag `v1.0.0`.
-   - Attach `Vyntra.apk` ready for direct download.
-
-### Option B: Trigger Build Manually via GitHub UI
-
-1. Go to your GitHub repository.
-2. Click on the **Actions** tab.
-3. Select **Build & Release Android APK** from the sidebar.
-4. Click **Run workflow**, enter the version name (e.g. `v1.0.0`), and press the green button.
-5. Once complete, your new release and download link are live!
-
-### Option C: Manual Upload to GitHub Releases
-
-If you prefer to build locally and upload manually:
-1. Build the APK locally:
-   ```bash
-   gradle assembleDebug
-   ```
-2. Locate the APK at:
-   `app/build/outputs/apk/debug/app-debug.apk`
-3. Rename it to `Vyntra.apk`.
-4. In your GitHub repository, go to **Releases** > **Draft a new release**.
-5. Set the tag (e.g. `v1.0.0`), give it a title, and drag-and-drop `Vyntra.apk` into the release binary drop zone.
-6. Click **Publish release**.
-
-> 💡 **Tip**: Update the URL in the badges and download links at the top of this `README.md` to match your own GitHub username if different from `skituspanda`.
+### Automated Steps:
+1. Sets up JDK 17 and Gradle with intelligent caching.
+2. Injects `GEMINI_API_KEY` from GitHub Repository Secrets into `.env`.
+3. Runs `./gradlew assembleDebug --stacktrace`.
+4. Uploads `Vyntra.apk` as a **GitHub Actions Artifact** (stored for 30 days).
+5. Creates a **GitHub Release** with auto-generated release notes and attaches `Vyntra.apk`.
+6. Publishes an OCI container image containing `Vyntra.apk` to **GitHub Packages (GHCR)**.
 
 ---
 
@@ -164,18 +188,18 @@ Vyntra uses **Gemini 3.5 Flash** for its AI food vision and conversational coach
 2. Click **New repository secret**.
 3. Name: `GEMINI_API_KEY`
 4. Value: `your_gemini_api_key`
-5. Click **Add secret**. The workflow will automatically inject it into the built APK.
+5. Click **Add secret**.
 
 ---
 
-## 💻 Building from Source
+## 💻 Building Locally from Source
 
 ### Prerequisites
 - **Android Studio** Ladybug (2024.2.1+) or newer
 - **JDK 17** or newer
 - **Android SDK Platform 36** (API 36)
 
-### Build Commands (Terminal)
+### Build Commands
 ```bash
 # Clone the repository
 git clone https://github.com/skituspanda/Vyntra.git
@@ -190,19 +214,6 @@ gradle assembleDebug
 # Run local unit tests
 gradle :app:testDebugUnitTest
 ```
-
----
-
-## 🏗️ Architecture & Tech Stack
-
-- **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) with Material Design 3 (M3)
-- **Language**: [Kotlin 2.0](https://kotlinlang.org/)
-- **Architecture**: Clean MVVM (Model-View-ViewModel) + Single Source of Truth Flows
-- **AI Vision & Chat**: Google Gemini 3.5 Flash via Generative AI / Retrofit REST interface
-- **Local Storage**: [Room Database](https://developer.android.com/training/data-storage/room) with SQLite & Kotlin Coroutines Flow
-- **Image Loading**: [Coil](https://coil-kt.github.io/coil/)
-- **Async Concurrency**: Kotlin Coroutines & StateFlow / SharedFlow
-- **Serialization**: Moshi Kotlin Codegen & Kotlinx Serialization
 
 ---
 

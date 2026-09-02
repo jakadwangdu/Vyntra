@@ -1,22 +1,37 @@
-name: Build & Release Android APK
+name: Build, Release & Publish Vyntra APK
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Release version name (e.g. v1.0.0)'
+        description: 'Release version tag (e.g. v1.0.0)'
         required: false
         default: 'v1.0.0'
+      publish_release:
+        description: 'Publish to GitHub Releases'
+        type: boolean
+        required: false
+        default: true
+      publish_package:
+        description: 'Publish to GitHub Packages (GHCR)'
+        type: boolean
+        required: false
+        default: true
 
 permissions:
   contents: write
+  packages: write
+  actions: read
 
 jobs:
-  build-and-release:
-    name: Build & Publish APK
+  build-and-publish:
+    name: Build APK, Publish Release & Package
     runs-on: ubuntu-latest
 
     steps:
@@ -40,44 +55,62 @@ jobs:
             cp .env.example .env
           fi
 
-      - name: Grant Execute Permission to Gradlew
+      - name: Build Android APK
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
+            ./gradlew assembleDebug --stacktrace
           else
-            gradle wrapper
-            chmod +x ./gradlew
+            gradle assembleDebug --stacktrace || (gradle wrapper && chmod +x ./gradlew && ./gradlew assembleDebug --stacktrace)
           fi
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
-
-      - name: Prepare APK for Release
+      - name: Prepare APK Asset
         run: |
           mkdir -p release_assets
-          # Locate built APK
           APK_PATH=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
           if [ -f "$APK_PATH" ]; then
             cp "$APK_PATH" release_assets/Vyntra.apk
-            echo "APK prepared at release_assets/Vyntra.apk"
+            echo "APK ready at release_assets/Vyntra.apk ($(du -h release_assets/Vyntra.apk | cut -f1))"
           else
             echo "Error: APK not found!" && exit 1
           fi
 
-      - name: Determine Release Tag
-        id: get_tag
+      - name: Determine Version Tag
+        id: vars
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.version_name }}" >> $GITHUB_OUTPUT
+            TAG="${{ github.event.inputs.version_name }}"
+            PUB_REL="${{ github.event.inputs.publish_release }}"
+            PUB_PKG="${{ github.event.inputs.publish_package }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            PUB_REL="true"
+            PUB_PKG="true"
           else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            TAG="v1.0.0-${GITHUB_SHA::7}"
+            PUB_REL="true"
+            PUB_PKG="true"
           fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "publish_release=$PUB_REL" >> $GITHUB_OUTPUT
+          echo "publish_package=$PUB_PKG" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release and Upload APK
+      # 1. Download via GitHub Actions Artifacts
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vyntra-APK
+          path: release_assets/Vyntra.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      # 2. Download via GitHub Releases
+      - name: Publish to GitHub Releases
+        if: steps.vars.outputs.publish_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.get_tag.outputs.tag }}
-          name: "Vyntra ${{ steps.get_tag.outputs.tag }}"
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "Vyntra ${{ steps.vars.outputs.tag }}"
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -85,3 +118,35 @@ jobs:
             release_assets/Vyntra.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Download via GitHub Packages (GHCR)
+      - name: Log in to GitHub Container Registry (GitHub Packages)
+        if: steps.vars.outputs.publish_package == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Publish Package to GitHub Packages
+        if: steps.vars.outputs.publish_package == 'true'
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository }}/vyntra-apk"
+          # Convert to lowercase for Docker repository compliance
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          TAG="${{ steps.vars.outputs.tag }}"
+
+          cat << 'EOF' > Dockerfile.package
+          FROM alpine:latest
+          LABEL org.opencontainers.image.source="https://github.com/${{ github.repository }}"
+          LABEL org.opencontainers.image.description="Vyntra Android APK Distribution Package"
+          LABEL org.opencontainers.image.licenses="Apache-2.0"
+          WORKDIR /dist
+          COPY release_assets/Vyntra.apk /dist/Vyntra.apk
+          CMD ["sh", "-c", "echo 'Vyntra APK available in /dist/Vyntra.apk'"]
+          EOF
+
+          docker build -f Dockerfile.package -t "$IMAGE_NAME:$TAG" -t "$IMAGE_NAME:latest" .
+          docker push "$IMAGE_NAME:$TAG"
+          docker push "$IMAGE_NAME:latest"
+          echo "Successfully published to GitHub Packages: $IMAGE_NAME:$TAG"

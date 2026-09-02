@@ -25,13 +25,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.local.MealEntity
 import com.example.ui.components.CalorieSummaryCard
+import com.example.ui.components.GitHubDownloadSheet
 import com.example.ui.theme.NutriBg
 import com.example.ui.theme.NutriBlack
 import com.example.ui.theme.NutriBorder
@@ -89,6 +93,7 @@ fun DashboardScreen(
     val currentFat = meals.sumOf { it.fat }
 
     var mealToDelete by remember { mutableStateOf<MealEntity?>(null) }
+    var showDownloadSheet by remember { mutableStateOf(false) }
 
     if (mealToDelete != null) {
         AlertDialog(
@@ -147,31 +152,133 @@ fun DashboardScreen(
                     )
                 }
 
-                // AI Coach shortcut button with active status dot
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(NutriWhite)
-                        .border(1.dp, NutriBorder, CircleShape)
-                        .clickable { viewModel.navigateTo(Screen.Chatbot) }
-                        .testTag("dashboard_chat_icon"),
-                    contentAlignment = Alignment.Center
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.ChatBubbleOutline,
-                        contentDescription = "Chat with AI Coach",
-                        tint = NutriBlack,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    // Red notification dot (matching mockup)
+                    // GitHub Download APK button
                     Box(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 8.dp, end = 8.dp)
-                            .size(7.dp)
-                            .background(NutriBurnRed, CircleShape)
-                    )
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(NutriWhite)
+                            .border(1.dp, NutriBorder, CircleShape)
+                            .clickable { showDownloadSheet = true }
+                            .testTag("dashboard_download_apk_button"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CloudDownload,
+                            contentDescription = "Download APK via GitHub",
+                            tint = NutriBlack,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        // Green accent dot
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 8.dp, end = 8.dp)
+                                .size(7.dp)
+                                .background(NutriGreenAccent, CircleShape)
+                        )
+                    }
+
+                    // AI Coach shortcut button with active status dot
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(NutriWhite)
+                            .border(1.dp, NutriBorder, CircleShape)
+                            .clickable { viewModel.navigateTo(Screen.Chatbot) }
+                            .testTag("dashboard_chat_icon"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ChatBubbleOutline,
+                            contentDescription = "Chat with AI Coach",
+                            tint = NutriBlack,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        // Red notification dot (matching mockup)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 8.dp, end = 8.dp)
+                                .size(7.dp)
+                                .background(NutriBurnRed, CircleShape)
+                        )
+                    }
+                }
+            }
+        }
+
+        // GitHub Releases, Actions & Packages Quick Install Banner
+        item {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, NutriBorder, RoundedCornerShape(14.dp))
+                    .clickable { showDownloadSheet = true }
+                    .testTag("dashboard_github_banner"),
+                color = NutriBlack,
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(NutriGreenAccent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Download,
+                                contentDescription = null,
+                                tint = NutriBlack,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Get Vyntra APK",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                ),
+                                color = NutriWhite
+                            )
+                            Text(
+                                text = "GitHub Releases • Actions • Packages",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = NutriGray
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(NutriDarkGray)
+                            .padding(horizontal = 9.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "INSTALL",
+                            color = NutriGreenAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 }
             }
         }
@@ -376,6 +483,12 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+
+    if (showDownloadSheet) {
+        GitHubDownloadSheet(
+            onDismissRequest = { showDownloadSheet = false }
+        )
     }
 }
 
