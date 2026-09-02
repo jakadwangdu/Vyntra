@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Vyntra</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="calories_left">Calories left</string>
+    <string name="eaten">Eaten</string>
+    <string name="burned">Burned</string>
+    <string name="carbs">Carbs</string>
+    <string name="protein">Protein</string>
+    <string name="fats">Fats</string>
+    <string name="water">Water</string>
+    <string name="meals">Meals</string>
+</resources>

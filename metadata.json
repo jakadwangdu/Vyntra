@@ -1,0 +1,7 @@
+{
+  "name": "Vyntra",
+  "description": "Vyntra - AI food scanning, nutrition tracking, personalized bulk/cut fitness plans, and brutalist AI coaching.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

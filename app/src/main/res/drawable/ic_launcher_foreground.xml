@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Upper Wing of Vyntra V -->
+    <path
+        android:fillColor="#F4F3EF"
+        android:pathData="M66.29,34.45 L79.3,34.45 L71.78,43.62 L63.06,43.62 L50.73,55.5 Z" />
+    <!-- Lower Body & Rounded Apex -->
+    <path
+        android:fillColor="#F4F3EF"
+        android:pathData="M28.7,34.45 L43.36,34.45 L50.73,55.5 L61.4,47.68 L68.14,47.68 L71.78,43.62 L77.57,43.62 L63.29,63.77 C59.53,69.79 56.52,73.55 53.14,73.55 C49.75,73.55 46.75,69.79 44.49,63.77 Z" />
+</vector>

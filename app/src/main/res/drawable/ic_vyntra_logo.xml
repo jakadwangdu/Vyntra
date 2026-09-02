@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="1000"
+    android:viewportHeight="1000">
+    <!-- Rounded Dark Canvas Background -->
+    <path
+        android:fillColor="#0E0F12"
+        android:pathData="M220,0 L780,0 C901.5,0 1000,98.5 1000,220 L1000,780 C1000,901.5 901.5,1000 780,1000 L220,1000 C98.5,1000 0,901.5 0,780 L0,220 C0,98.5 98.5,0 220,0 Z" />
+    <!-- Upper Wing -->
+    <path
+        android:fillColor="#F4F3EF"
+        android:pathData="M675,260 L848,260 L748,382 L632,382 L468,540 Z" />
+    <!-- Lower Body -->
+    <path
+        android:fillColor="#F4F3EF"
+        android:pathData="M175,260 L370,260 L468,540 L610,436 L700,436 L748,382 L825,382 L635,650 C585,730 545,780 500,780 C455,780 415,730 385,650 Z" />
+</vector>
