@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,6 +50,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,7 +60,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.local.MealEntity
 import com.example.ui.components.CalorieSummaryCard
-import com.example.ui.components.GitHubDownloadSheet
 import com.example.ui.theme.NutriBg
 import com.example.ui.theme.NutriBlack
 import com.example.ui.theme.NutriBorder
@@ -96,7 +98,9 @@ fun DashboardScreen(
     val currentFat = meals.sumOf { it.fat }
 
     var mealToDelete by remember { mutableStateOf<MealEntity?>(null) }
-    var showDownloadSheet by remember { mutableStateOf(false) }
+
+    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
 
     if (mealToDelete != null) {
         AlertDialog(
@@ -166,7 +170,13 @@ fun DashboardScreen(
                             .clip(CircleShape)
                             .background(NutriWhite)
                             .border(1.dp, NutriBorder, CircleShape)
-                            .clickable { showDownloadSheet = true }
+                            .clickable { 
+                                try {
+                                    uriHandler.openUri("https://github.com/skituspanda/Vyntra/releases/latest/download/Vyntra.apk")
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                             .testTag("dashboard_download_apk_button"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -271,12 +281,12 @@ fun DashboardScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(NutriDarkGray)
+                            .background(NutriGreenAccent)
                             .padding(horizontal = 9.dp, vertical = 5.dp)
                     ) {
                         Text(
                             text = "VIEW",
-                            color = NutriGreenAccent,
+                            color = NutriWhite,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
@@ -486,12 +496,6 @@ fun DashboardScreen(
                 }
             }
         }
-    }
-
-    if (showDownloadSheet) {
-        GitHubDownloadSheet(
-            onDismissRequest = { showDownloadSheet = false }
-        )
     }
 }
 

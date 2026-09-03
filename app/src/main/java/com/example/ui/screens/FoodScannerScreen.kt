@@ -116,6 +116,16 @@ fun FoodScannerScreen(
         }
     }
 
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        } else {
+            android.widget.Toast.makeText(context, "Camera permission is required to scan food", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // Animation for scanning laser beam
     val infiniteTransition = rememberInfiniteTransition(label = "scan_laser")
     val laserYRatio by infiniteTransition.animateFloat(
@@ -405,7 +415,11 @@ fun FoodScannerScreen(
                             .clip(CircleShape)
                             .background(Color(0xFFF0F0F0))
                             .clickable {
-                                cameraLauncher.launch(null)
+                                if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    cameraLauncher.launch(null)
+                                } else {
+                                    cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                }
                             }
                             .testTag("camera_launcher_button"),
                         contentAlignment = Alignment.Center
