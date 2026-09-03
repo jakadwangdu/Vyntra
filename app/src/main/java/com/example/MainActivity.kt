@@ -16,6 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import com.example.ui.components.GlobalSearchOverlay
 import com.example.ui.components.NutriBottomBar
 import com.example.ui.screens.ChatbotScreen
 import com.example.ui.screens.DashboardScreen
@@ -45,13 +53,39 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NutriLensApp(viewModel: NutriLensViewModel) {
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
-
     val showBottomBar = currentScreen is Screen.Dashboard ||
             currentScreen is Screen.Recipes ||
             currentScreen is Screen.Workout
 
+    var showGlobalSearch by remember { mutableStateOf(false) }
+    var startY by remember { mutableStateOf(0f) }
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val topEighthPx = remember(configuration, density) {
+        with(density) { (configuration.screenHeightDp / 8).dp.toPx() }
+    }
+
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val pointer = event.changes.firstOrNull()
+                        if (pointer != null) {
+                            if (pointer.pressed && !pointer.previousPressed) {
+                                startY = pointer.position.y
+                            } else if (pointer.pressed && pointer.previousPressed) {
+                                val currentY = pointer.position.y
+                                if (startY <= topEighthPx && (currentY - startY) > 50f) {
+                                    showGlobalSearch = true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
         bottomBar = {
             if (showBottomBar) {
                 NutriBottomBar(
@@ -80,6 +114,11 @@ fun NutriLensApp(viewModel: NutriLensViewModel) {
                     is Screen.Onboarding -> OnboardingScreen(viewModel = viewModel)
                 }
             }
+
+            GlobalSearchOverlay(
+                isVisible = showGlobalSearch,
+                onDismiss = { showGlobalSearch = false }
+            )
         }
     }
 }
