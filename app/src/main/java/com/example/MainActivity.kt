@@ -64,7 +64,6 @@ fun NutriLensApp(viewModel: NutriLensViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (showBottomBar) innerPadding.calculateBottomPadding() else 0.dp)
         ) {
             Crossfade(
                 targetState = currentScreen,

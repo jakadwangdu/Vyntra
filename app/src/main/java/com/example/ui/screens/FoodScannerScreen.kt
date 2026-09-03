@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
@@ -49,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,7 +64,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import android.Manifest
+import android.content.pm.PackageManager
 import coil.compose.AsyncImage
 import com.example.data.model.PresetData
 import com.example.ui.theme.NutriBlack
@@ -84,12 +98,17 @@ fun FoodScannerScreen(
     var isFlashOn by remember { mutableStateOf(false) }
     var zoomLevel by remember { mutableStateOf("1x") }
 
-    // Selected viewfinder preview image (defaulting to Panna Cotta from screenshot 2)
-    var selectedPreviewUrl by remember {
-        mutableStateOf(PresetData.sampleScanFoods.first().imageUrl)
+    // Selected viewfinder preview image. Now nullable. If null, we show CameraX preview.
+    var selectedPreviewUrl by remember { mutableStateOf<String?>(null) }
+
+    // CameraX Setup
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var hasCameraPermission by remember { 
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) 
     }
 
-    // Photo gallery picker launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -101,28 +120,23 @@ fun FoodScannerScreen(
                     viewModel.scanImage(bitmap)
                 }
             } catch (e: Exception) {
-                // Fallback to sample
                 viewModel.selectPresetFood(PresetData.sampleScanFoods.first())
             }
-        }
-    }
-
-    // Native Camera Take Picture Preview launcher
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        if (bitmap != null) {
-            viewModel.scanImage(bitmap)
         }
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        if (isGranted) {
-            cameraLauncher.launch(null)
-        } else {
+        hasCameraPermission = isGranted
+        if (!isGranted) {
             android.widget.Toast.makeText(context, "Camera permission is required to scan food", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -143,13 +157,59 @@ fun FoodScannerScreen(
             .fillMaxSize()
             .background(NutriBlack)
     ) {
-        // Viewfinder Food Background Image (matching screenshot 2)
-        AsyncImage(
-            model = selectedPreviewUrl,
-            contentDescription = "Food Viewfinder Preview",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (selectedPreviewUrl != null) {
+            AsyncImage(
+                model = selectedPreviewUrl,
+                contentDescription = "Food Viewfinder Preview",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else if (hasCameraPermission) {
+            AndroidView(
+                factory = { ctx ->
+                    val previewView = PreviewView(ctx)
+                    val executor = ContextCompat.getMainExecutor(ctx)
+                    cameraProviderFuture.addListener({
+                        val cameraProvider = cameraProviderFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+                        
+                        val imgCapture = ImageCapture.Builder()
+                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                            .build()
+                        imageCapture = imgCapture
+                        
+                        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                        
+                        try {
+                            cameraProvider.unbindAll()
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                cameraSelector,
+                                preview,
+                                imgCapture
+                            )
+                        } catch (e: Exception) {
+                            // Ignore
+                        }
+                    }, executor)
+                    previewView
+                },
+                onRelease = {
+                    try {
+                        if (cameraProviderFuture.isDone) {
+                            cameraProviderFuture.get().unbindAll()
+                        }
+                    } catch (e: Exception) {
+                        // Ignore
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(Modifier.fillMaxSize().background(Color.Black))
+        }
 
         // Semi-dark vignette
         Box(
@@ -293,7 +353,7 @@ fun FoodScannerScreen(
                         letterSpacing = 1.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color(0xFF888888)
+                    color = com.example.ui.theme.NutriDarkGray
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -392,10 +452,34 @@ fun FoodScannerScreen(
                             .clip(CircleShape)
                             .background(NutriBlack)
                             .clickable {
-                                // Scan the selected food preset or trigger scan
-                                val food = PresetData.sampleScanFoods.find { it.imageUrl == selectedPreviewUrl }
-                                    ?: PresetData.sampleScanFoods.first()
-                                viewModel.selectPresetFood(food)
+                                if (selectedPreviewUrl != null) {
+                                    // Scan the selected food preset
+                                    val food = PresetData.sampleScanFoods.find { it.imageUrl == selectedPreviewUrl }
+                                        ?: PresetData.sampleScanFoods.first()
+                                    viewModel.selectPresetFood(food)
+                                } else {
+                                    // Take picture with CameraX
+                                    val currentImageCapture = imageCapture ?: return@clickable
+                                    currentImageCapture.takePicture(
+                                        ContextCompat.getMainExecutor(context),
+                                        object : ImageCapture.OnImageCapturedCallback() {
+                                            override fun onCaptureSuccess(image: ImageProxy) {
+                                                val buffer = image.planes[0].buffer
+                                                val bytes = ByteArray(buffer.capacity())
+                                                buffer.get(bytes)
+                                                var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                val matrix = Matrix()
+                                                matrix.postRotate(image.imageInfo.rotationDegrees.toFloat())
+                                                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                                                viewModel.scanImage(bitmap)
+                                                image.close()
+                                            }
+                                            override fun onError(exc: ImageCaptureException) {
+                                                android.widget.Toast.makeText(context, "Failed to capture image", android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    )
+                                }
                             }
                             .testTag("shutter_button"),
                         contentAlignment = Alignment.Center
@@ -408,17 +492,16 @@ fun FoodScannerScreen(
                         )
                     }
 
-                    // Real Native Camera Capture Launcher
+                    // Live Camera Switch
                     Box(
                         modifier = Modifier
                             .size(50.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF0F0F0))
+                            .background(if (selectedPreviewUrl == null) NutriBlack else Color(0xFFF0F0F0))
                             .clickable {
-                                if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                                    cameraLauncher.launch(null)
-                                } else {
-                                    cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                selectedPreviewUrl = null
+                                if (!hasCameraPermission) {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                                 }
                             }
                             .testTag("camera_launcher_button"),
@@ -426,8 +509,8 @@ fun FoodScannerScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Cameraswitch,
-                            contentDescription = "Take Camera Photo",
-                            tint = NutriBlack,
+                            contentDescription = "Live Camera",
+                            tint = if (selectedPreviewUrl == null) NutriWhite else NutriBlack,
                             modifier = Modifier.size(24.dp)
                         )
                     }

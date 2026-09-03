@@ -240,6 +240,8 @@ fun OnboardingScreen(
                         .testTag("onboarding_name_input"),
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = NutriBlack,
+                        unfocusedTextColor = NutriBlack,
                         focusedContainerColor = NutriWhite,
                         unfocusedContainerColor = NutriWhite,
                         focusedBorderColor = NutriBlack,
@@ -299,6 +301,8 @@ fun OnboardingScreen(
                         modifier = Modifier.fillMaxWidth().testTag("onboarding_age_input"),
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = NutriBlack,
+                            unfocusedTextColor = NutriBlack,
                             focusedContainerColor = NutriWhite,
                             unfocusedContainerColor = NutriWhite
                         )
@@ -314,6 +318,8 @@ fun OnboardingScreen(
                         modifier = Modifier.fillMaxWidth().testTag("onboarding_weight_input"),
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = NutriBlack,
+                            unfocusedTextColor = NutriBlack,
                             focusedContainerColor = NutriWhite,
                             unfocusedContainerColor = NutriWhite
                         )
@@ -329,6 +335,8 @@ fun OnboardingScreen(
                         modifier = Modifier.fillMaxWidth().testTag("onboarding_height_input"),
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = NutriBlack,
+                            unfocusedTextColor = NutriBlack,
                             focusedContainerColor = NutriWhite,
                             unfocusedContainerColor = NutriWhite
                         )
@@ -540,6 +548,8 @@ fun OnboardingScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = NutriBlack,
+                                    unfocusedTextColor = NutriBlack,
                                     focusedContainerColor = NutriBg,
                                     unfocusedContainerColor = NutriBg
                                 )

@@ -128,6 +128,8 @@ fun RecipesScreen(
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = NutriBlack,
+                    unfocusedTextColor = NutriBlack,
                     focusedContainerColor = NutriWhite,
                     unfocusedContainerColor = NutriWhite,
                     focusedBorderColor = NutriBlack,

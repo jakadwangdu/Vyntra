@@ -280,6 +280,8 @@ fun ChatbotScreen(
                         .testTag("chat_message_input"),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = NutriBlack,
+                        unfocusedTextColor = NutriBlack,
                         focusedContainerColor = Color(0xFFFAFAFA),
                         unfocusedContainerColor = Color(0xFFFAFAFA),
                         focusedBorderColor = NutriBlack,
