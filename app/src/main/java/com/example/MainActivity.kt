@@ -117,7 +117,10 @@ fun NutriLensApp(viewModel: NutriLensViewModel) {
 
             GlobalSearchOverlay(
                 isVisible = showGlobalSearch,
-                onDismiss = { showGlobalSearch = false }
+                onDismiss = { showGlobalSearch = false },
+                onSelectFood = { food ->
+                    viewModel.selectPresetFood(food)
+                }
             )
         }
     }

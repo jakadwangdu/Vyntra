@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.example.data.model.FoodScanResult
 import com.example.data.model.PresetData
 import com.example.data.model.Recipe
 import com.example.ui.theme.NutriBg
@@ -69,12 +70,28 @@ fun RecipesScreen(
     val selectedCategory by viewModel.selectedRecipeCategory.collectAsStateWithLifecycle()
     val searchQuery by viewModel.recipeSearchQuery.collectAsStateWithLifecycle()
 
-    val categories = listOf("All", "Vegan", "Protein", "Snacks")
+    val cuisineCategories = listOf(
+        "All" to "🌐 All",
+        "Indian" to "🇮🇳 Indian",
+        "French" to "🇫🇷 French",
+        "Japanese" to "🇯🇵 Japanese",
+        "Italian" to "🇮🇹 Italian",
+        "Mexican" to "🇲🇽 Mexican",
+        "Thai" to "🇹🇭 Thai",
+        "Mediterranean" to "🇬🇷 Mediterranean",
+        "Vegan" to "🌱 Vegan",
+        "Protein" to "🥩 Protein"
+    )
 
     val filteredRecipes = remember(selectedCategory, searchQuery) {
         PresetData.recipes.filter { recipe ->
-            val matchesCategory = (selectedCategory == "All") || (recipe.category.equals(selectedCategory, ignoreCase = true))
-            val matchesSearch = searchQuery.isBlank() || recipe.title.contains(searchQuery, ignoreCase = true)
+            val matchesCategory = (selectedCategory == "All") || 
+                (recipe.category.equals(selectedCategory, ignoreCase = true)) ||
+                (recipe.cuisine.equals(selectedCategory, ignoreCase = true))
+            val matchesSearch = searchQuery.isBlank() || 
+                recipe.title.contains(searchQuery, ignoreCase = true) ||
+                recipe.cuisine.contains(searchQuery, ignoreCase = true) ||
+                recipe.ingredients.any { it.contains(searchQuery, ignoreCase = true) }
             matchesCategory && matchesSearch
         }
     }
@@ -94,7 +111,7 @@ fun RecipesScreen(
                     .statusBarsPadding()
             ) {
                 Text(
-                    text = "Explore Recipes",
+                    text = "World Cuisines & Recipes",
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp
@@ -102,7 +119,7 @@ fun RecipesScreen(
                     color = NutriBlack
                 )
                 Text(
-                    text = "AI curated meals balanced for your macro targets",
+                    text = "AI curated global dishes from India, France, Japan & more",
                     style = MaterialTheme.typography.bodyMedium,
                     color = NutriGray
                 )
@@ -117,7 +134,7 @@ fun RecipesScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("recipe_search_input"),
-                placeholder = { Text("Search foods, recipes...", color = NutriGray) },
+                placeholder = { Text("Search Indian, French, Japanese dishes...", color = NutriGray) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Filled.Search,
@@ -138,7 +155,7 @@ fun RecipesScreen(
             )
         }
 
-        // Category Filter Chips (matching mockup: All, Vegan, Protein, Snacks)
+        // Category Filter Chips (All, Indian, French, Japanese, Italian, etc.)
         item {
             Row(
                 modifier = Modifier
@@ -146,20 +163,20 @@ fun RecipesScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                categories.forEach { cat ->
-                    val isSelected = selectedCategory == cat
+                cuisineCategories.forEach { (catKey, label) ->
+                    val isSelected = selectedCategory.equals(catKey, ignoreCase = true)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
                             .background(if (isSelected) NutriBlack else NutriWhite)
                             .border(1.dp, if (isSelected) NutriBlack else NutriBorder, RoundedCornerShape(20.dp))
-                            .clickable { viewModel.setRecipeCategory(cat) }
-                            .padding(horizontal = 18.dp, vertical = 10.dp)
-                            .testTag("recipe_filter_${cat.lowercase()}"),
+                            .clickable { viewModel.setRecipeCategory(catKey) }
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                            .testTag("recipe_filter_${catKey.lowercase()}"),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = cat,
+                            text = label,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = if (isSelected) NutriWhite else NutriBlack
                         )
@@ -176,7 +193,7 @@ fun RecipesScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Trending Recipes (${filteredRecipes.size})",
+                    text = "Global Dishes (${filteredRecipes.size})",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
@@ -192,6 +209,25 @@ fun RecipesScreen(
                 recipe = recipe,
                 onLogClick = {
                     viewModel.logRecipeDirectly(recipe)
+                },
+                onAnalyzeClick = {
+                    val matchingFood = PresetData.sampleScanFoods.find { it.name.contains(recipe.title.take(8), ignoreCase = true) }
+                        ?: FoodScanResult(
+                            name = recipe.title,
+                            calories = recipe.calories,
+                            protein = recipe.protein,
+                            carbs = recipe.carbs,
+                            fat = recipe.fat,
+                            portionGrams = 300,
+                            description = recipe.description,
+                            ingredients = recipe.ingredients,
+                            micronutrients = "Custom calibrated nutrients",
+                            imageUrl = recipe.imageUrl,
+                            dietaryTag = recipe.category,
+                            cuisine = recipe.cuisine,
+                            countryFlag = recipe.countryFlag
+                        )
+                    viewModel.selectPresetFood(matchingFood)
                 }
             )
         }
@@ -201,7 +237,8 @@ fun RecipesScreen(
 @Composable
 fun RecipeCard(
     recipe: Recipe,
-    onLogClick: () -> Unit
+    onLogClick: () -> Unit,
+    onAnalyzeClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -209,6 +246,7 @@ fun RecipeCard(
             .clip(RoundedCornerShape(22.dp))
             .background(NutriWhite)
             .border(1.dp, NutriBorder, RoundedCornerShape(22.dp))
+            .clickable { onAnalyzeClick() }
             .padding(14.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -226,20 +264,25 @@ fun RecipeCard(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Category tag on top right
-                Box(
+                // Country flag & Category tag on top right
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(10.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(NutriBlack.copy(alpha = 0.75f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = recipe.category,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = NutriWhite
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(NutriBlack.copy(alpha = 0.8f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${recipe.countryFlag} ${recipe.category}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = NutriWhite
+                        )
+                    }
                 }
             }
 
@@ -304,28 +347,50 @@ fun RecipeCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Quick log button
-            Button(
-                onClick = onLogClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFF3F2EE),
-                    contentColor = NutriBlack
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp)
+            // Dual Buttons: Analyze Breakdown & Quick Log
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Log Meal",
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Log to Diary",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                Button(
+                    onClick = onAnalyzeClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NutriBlack,
+                        contentColor = NutriWhite
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                ) {
+                    Text(
+                        text = "Analyze Macros",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+
+                Button(
+                    onClick = onLogClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF3F2EE),
+                        contentColor = NutriBlack
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Log Meal",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Log Diary",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }

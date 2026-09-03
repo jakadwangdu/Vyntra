@@ -11,7 +11,9 @@ data class FoodScanResult(
     val ingredients: List<String>,
     val micronutrients: String,
     val imageUrl: String = "",
-    val dietaryTag: String = ""
+    val dietaryTag: String = "",
+    val cuisine: String = "Global",
+    val countryFlag: String = "🌐"
 )
 
 data class ChatMessage(
@@ -29,7 +31,7 @@ enum class MessageSender {
 data class Recipe(
     val id: String,
     val title: String,
-    val category: String, // All, Vegan, Protein, Snacks, Low Carb
+    val category: String, // All, Indian, French, Japanese, Italian, Mexican, Thai, Mediterranean, Vegan, Protein, Snacks
     val timeMinutes: Int,
     val calories: Int,
     val protein: Int,
@@ -38,7 +40,9 @@ data class Recipe(
     val difficulty: String,
     val imageUrl: String,
     val description: String,
-    val ingredients: List<String>
+    val ingredients: List<String>,
+    val cuisine: String = "Global",
+    val countryFlag: String = "🌐"
 )
 
 data class Exercise(

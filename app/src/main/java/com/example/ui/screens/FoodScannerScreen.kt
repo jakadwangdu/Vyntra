@@ -376,17 +376,78 @@ fun FoodScannerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Preset meal selection pills for instant testing
-                Text(
-                    text = "SELECT FOOD OR SNAP PHOTO",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        letterSpacing = 1.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = com.example.ui.theme.NutriDarkGray
+                // World Cuisine Selector & Food Presets
+                var selectedCuisineTab by remember { mutableStateOf("All") }
+                val cuisineTabs = listOf(
+                    "All" to "🌐 All Cuisines",
+                    "Indian" to "🇮🇳 Indian",
+                    "French" to "🇫🇷 French",
+                    "Japanese" to "🇯🇵 Japanese",
+                    "Italian" to "🇮🇹 Italian",
+                    "Mexican" to "🇲🇽 Mexican",
+                    "Thai" to "🇹🇭 Thai / Asian",
+                    "Mediterranean" to "🇬🇷 Mediterranean",
+                    "Global" to "🥗 Superfoods"
                 )
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "WORLD CUISINES & FOODS",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            letterSpacing = 1.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = com.example.ui.theme.NutriDarkGray
+                    )
+                    Text(
+                        text = "${PresetData.sampleScanFoods.size} Global Dishes",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF757575)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Cuisine category selector pills
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    cuisineTabs.forEach { (cuisineKey, label) ->
+                        val isSelected = selectedCuisineTab == cuisineKey
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) NutriBlack else Color(0xFFF2F2F2))
+                                .clickable { selectedCuisineTab = cuisineKey }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .testTag("cuisine_tab_${cuisineKey.lowercase()}"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = if (isSelected) NutriWhite else NutriBlack
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(10.dp))
+
+                val filteredWorldFoods = remember(selectedCuisineTab) {
+                    if (selectedCuisineTab == "All") {
+                        PresetData.sampleScanFoods
+                    } else {
+                        PresetData.sampleScanFoods.filter { it.cuisine.equals(selectedCuisineTab, ignoreCase = true) }
+                    }
+                }
 
                 Row(
                     modifier = Modifier
@@ -394,30 +455,51 @@ fun FoodScannerScreen(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    PresetData.sampleScanFoods.forEach { food ->
+                    filteredWorldFoods.forEach { food ->
                         val isSelected = selectedPreviewUrl == food.imageUrl
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(if (isSelected) NutriBlack else Color(0xFFF2F2F2))
+                                .background(if (isSelected) NutriBlack else Color(0xFFF5F5F5))
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                    color = if (isSelected) NutriGreenAccent else Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
                                 .clickable {
                                     selectedPreviewUrl = food.imageUrl
                                     viewModel.selectPresetFood(food)
                                 }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
                                 .testTag("preset_food_${food.name.lowercase().replace(" ", "_")}"),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = food.name,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = if (isSelected) NutriWhite else NutriBlack
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = food.countryFlag,
+                                    fontSize = 14.sp
+                                )
+                                Column {
+                                    Text(
+                                        text = food.name,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isSelected) NutriWhite else NutriBlack
+                                    )
+                                    Text(
+                                        text = "${food.calories} kcal • ${food.protein}g P",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = if (isSelected) NutriGreenAccent else Color(0xFF757575)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Zoom Indicator / Ticks (0.5x, 1x, 2x)
                 Row(
