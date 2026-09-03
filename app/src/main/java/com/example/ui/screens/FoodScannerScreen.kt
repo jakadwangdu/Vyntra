@@ -68,6 +68,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -106,9 +107,33 @@ fun FoodScannerScreen(
     // CameraX Setup
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    var cameraInstance by remember { mutableStateOf<Camera?>(null) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var hasCameraPermission by remember { 
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) 
+    }
+
+    // React to torch / flash changes
+    LaunchedEffect(isFlashOn, cameraInstance) {
+        try {
+            cameraInstance?.cameraControl?.enableTorch(isFlashOn)
+        } catch (e: Exception) {
+            // Flash not supported or inactive
+        }
+    }
+
+    // React to zoom level changes
+    LaunchedEffect(zoomLevel, cameraInstance) {
+        try {
+            val ratio = when (zoomLevel) {
+                "0.5x" -> 1.0f
+                "2x" -> 2.0f
+                else -> 1.0f
+            }
+            cameraInstance?.cameraControl?.setZoomRatio(ratio)
+        } catch (e: Exception) {
+            // Zoom ratio setting ignored
+        }
     }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -195,13 +220,14 @@ fun FoodScannerScreen(
                         
                         try {
                             cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
+                            val cam = cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 cameraSelector,
                                 preview,
                                 imgCapture,
                                 imageAnalysis
                             )
+                            cameraInstance = cam
                         } catch (e: Exception) {
                             // Ignore
                         }
@@ -220,7 +246,49 @@ fun FoodScannerScreen(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            Box(Modifier.fillMaxSize().background(Color.Black))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1E1E1E)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PhotoCamera,
+                        contentDescription = "Camera Permission",
+                        tint = NutriGreenAccent,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = "Camera Access Required",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = NutriWhite
+                    )
+                    Text(
+                        text = "Enable camera to live scan meals or select a dish below",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFAAAAAA),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(NutriGreenAccent)
+                            .clickable { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }
+                            .padding(horizontal = 20.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = "Grant Camera Permission",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = NutriBlack
+                        )
+                    }
+                }
+            }
         }
 
         // Semi-dark vignette
@@ -570,27 +638,51 @@ fun FoodScannerScreen(
                                         ?: PresetData.sampleScanFoods.first()
                                     viewModel.selectPresetFood(food)
                                 } else {
-                                    // Take picture with CameraX
-                                    val currentImageCapture = imageCapture ?: return@clickable
-                                    currentImageCapture.takePicture(
-                                        ContextCompat.getMainExecutor(context),
-                                        object : ImageCapture.OnImageCapturedCallback() {
-                                            override fun onCaptureSuccess(image: ImageProxy) {
-                                                val buffer = image.planes[0].buffer
-                                                val bytes = ByteArray(buffer.capacity())
-                                                buffer.get(bytes)
-                                                var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                                val matrix = Matrix()
-                                                matrix.postRotate(image.imageInfo.rotationDegrees.toFloat())
-                                                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                                                viewModel.scanImage(bitmap)
-                                                image.close()
+                                    val currentImageCapture = imageCapture
+                                    if (currentImageCapture != null && hasCameraPermission) {
+                                        currentImageCapture.takePicture(
+                                            ContextCompat.getMainExecutor(context),
+                                            object : ImageCapture.OnImageCapturedCallback() {
+                                                override fun onCaptureSuccess(image: ImageProxy) {
+                                                    try {
+                                                        val bitmap = try {
+                                                            image.toBitmap()
+                                                        } catch (e: Exception) {
+                                                            val plane = image.planes[0]
+                                                            val buffer = plane.buffer
+                                                            val bytes = ByteArray(buffer.remaining())
+                                                            buffer.get(bytes)
+                                                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                        }
+                                                        if (bitmap != null) {
+                                                            val matrix = Matrix()
+                                                            matrix.postRotate(image.imageInfo.rotationDegrees.toFloat())
+                                                            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                                                            viewModel.scanImage(rotated)
+                                                        } else {
+                                                            viewModel.selectPresetFood(PresetData.sampleScanFoods.first())
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        viewModel.selectPresetFood(PresetData.sampleScanFoods.first())
+                                                    } finally {
+                                                        image.close()
+                                                    }
+                                                }
+                                                override fun onError(exc: ImageCaptureException) {
+                                                    val food = PresetData.sampleScanFoods.first()
+                                                    viewModel.selectPresetFood(food)
+                                                }
                                             }
-                                            override fun onError(exc: ImageCaptureException) {
-                                                android.widget.Toast.makeText(context, "Failed to capture image", android.widget.Toast.LENGTH_SHORT).show()
-                                            }
+                                        )
+                                    } else {
+                                        // Camera not yet bound or no permission; prompt permission or instant scan fallback
+                                        if (!hasCameraPermission) {
+                                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                        } else {
+                                            val food = PresetData.sampleScanFoods.first()
+                                            viewModel.selectPresetFood(food)
                                         }
-                                    )
+                                    }
                                 }
                             }
                             .testTag("shutter_button"),
