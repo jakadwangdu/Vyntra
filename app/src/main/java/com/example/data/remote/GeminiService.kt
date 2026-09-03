@@ -160,6 +160,74 @@ class GeminiService {
         }
     }
 
+    suspend fun analyzeRealtime(bitmap: Bitmap): Result<String> = withContext(Dispatchers.IO) {
+        val apiKey = getApiKey()
+        if (apiKey.isBlank()) {
+            return@withContext Result.failure(Exception("API Key is missing. Please add it in AI Studio settings."))
+        }
+
+        try {
+            val base64Image = bitmapToBase64(bitmap)
+            val jsonMediaType = "application/json".toMediaType()
+
+            val prompt = """
+                You are a real-time food identifier. Identify the main food in this image. 
+                Keep it very brief. Example: "Apple (95 kcal)" or "Pizza slice (~250 kcal)". 
+                If there is no food, just return "No food detected". Do not use markdown.
+            """.trimIndent()
+
+            val rootJson = JSONObject().apply {
+                val contents = JSONArray()
+                val contentObj = JSONObject().apply {
+                    val parts = JSONArray()
+                    parts.put(JSONObject().apply {
+                        put("text", prompt)
+                    })
+                    parts.put(JSONObject().apply {
+                        put("inlineData", JSONObject().apply {
+                            put("mimeType", "image/jpeg")
+                            put("data", base64Image)
+                        })
+                    })
+                    put("parts", parts)
+                }
+                contents.put(contentObj)
+                put("contents", contents)
+
+                put("generationConfig", JSONObject().apply {
+                    put("temperature", 0.1)
+                    put("maxOutputTokens", 20)
+                })
+            }
+
+            val requestBody = rootJson.toString().toRequestBody(jsonMediaType)
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
+
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                return@withContext Result.failure(Exception("API error"))
+            }
+
+            val responseStr = response.body?.string() ?: ""
+            val jsonResponse = JSONObject(responseStr)
+            val text = jsonResponse.optJSONArray("candidates")
+                ?.optJSONObject(0)
+                ?.optJSONObject("content")
+                ?.optJSONArray("parts")
+                ?.optJSONObject(0)
+                ?.optString("text") ?: "Analyzing..."
+                
+            Result.success(text.trim())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun chatWithCoach(
         userMessage: String,
         userGoal: String,

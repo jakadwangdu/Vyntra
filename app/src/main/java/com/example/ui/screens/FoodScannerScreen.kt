@@ -69,7 +69,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -93,6 +95,7 @@ fun FoodScannerScreen(
     modifier: Modifier = Modifier
 ) {
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
+    val realtimeAnalysis by viewModel.realtimeAnalysis.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var isFlashOn by remember { mutableStateOf(false) }
@@ -180,6 +183,15 @@ fun FoodScannerScreen(
                             .build()
                         imageCapture = imgCapture
                         
+                        val imageAnalysis = ImageAnalysis.Builder()
+                            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
+                            
+                        imageAnalysis.setAnalyzer(executor) { proxy ->
+                            viewModel.analyzeLiveFrame(proxy)
+                        }
+                        
                         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                         
                         try {
@@ -188,7 +200,8 @@ fun FoodScannerScreen(
                                 lifecycleOwner,
                                 cameraSelector,
                                 preview,
-                                imgCapture
+                                imgCapture,
+                                imageAnalysis
                             )
                         } catch (e: Exception) {
                             // Ignore
@@ -331,6 +344,24 @@ fun FoodScannerScreen(
                 )
             }
         }
+
+        if (realtimeAnalysis != null && scanState !is ScanUiState.Scanning) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = (-200).dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(NutriBlack.copy(alpha = 0.75f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = realtimeAnalysis!!,
+                    color = NutriWhite,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        }
+
 
         // Bottom Controls Container (white card with zoom slider & shutter button)
         Box(

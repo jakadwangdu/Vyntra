@@ -1,3 +1,4 @@
+import androidx.camera.core.ImageProxy
 package com.example.ui.viewmodel
 
 import android.app.Application
@@ -75,6 +76,11 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _scanState = MutableStateFlow<ScanUiState>(ScanUiState.Idle)
     val scanState: StateFlow<ScanUiState> = _scanState.asStateFlow()
+
+    private val _realtimeAnalysis = MutableStateFlow<String?>(null)
+    val realtimeAnalysis: StateFlow<String?> = _realtimeAnalysis.asStateFlow()
+
+    private var lastAnalysisTime = 0L
 
     private val _currentScannedFood = MutableStateFlow<FoodScanResult?>(null)
     val currentScannedFood: StateFlow<FoodScanResult?> = _currentScannedFood.asStateFlow()
@@ -184,6 +190,32 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setServingMultiplier(multiplier: Float) {
         _servingMultiplier.value = multiplier.coerceIn(0.25f, 4.0f)
+    }
+
+    fun analyzeLiveFrame(imageProxy: ImageProxy) {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastAnalysisTime > 3000) {
+            lastAnalysisTime = currentTime
+            try {
+                val bitmap = imageProxy.toBitmap()
+                val matrix = android.graphics.Matrix()
+                matrix.postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
+                val rotatedBitmap = android.graphics.Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                imageProxy.close()
+                
+                viewModelScope.launch {
+                    val resized = android.graphics.Bitmap.createScaledBitmap(rotatedBitmap, 256, 256, true)
+                    val result = geminiService.analyzeRealtime(resized)
+                    result.onSuccess {
+                        _realtimeAnalysis.value = it
+                    }
+                }
+            } catch (e: Exception) {
+                imageProxy.close()
+            }
+        } else {
+            imageProxy.close()
+        }
     }
 
     fun scanImage(bitmap: Bitmap) {
