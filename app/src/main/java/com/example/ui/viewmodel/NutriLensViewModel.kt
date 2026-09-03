@@ -10,6 +10,9 @@ import com.example.data.local.UserProfileEntity
 import com.example.data.local.WaterLogEntity
 import com.example.data.local.WorkoutLogEntity
 import com.example.data.model.ChatMessage
+import com.example.data.model.CustomDietPlan
+import com.example.data.model.DietPlanGenerator
+import com.example.data.model.DietPlanMeal
 import com.example.data.model.FoodScanResult
 import com.example.data.model.MessageSender
 import com.example.data.model.PresetData
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,6 +37,7 @@ import java.util.Locale
 sealed class Screen {
     object Onboarding : Screen()
     object Dashboard : Screen()
+    object DietPlan : Screen()
     object Scanner : Screen()
     object FoodDetail : Screen()
     object Recipes : Screen()
@@ -77,6 +82,12 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
     private val _servingMultiplier = MutableStateFlow(1.0f)
     val servingMultiplier: StateFlow<Float> = _servingMultiplier.asStateFlow()
 
+    private val _customDietPlan = MutableStateFlow<CustomDietPlan?>(null)
+    val customDietPlan: StateFlow<CustomDietPlan?> = _customDietPlan.asStateFlow()
+
+    private val _capturedBitmap = MutableStateFlow<Bitmap?>(null)
+    val capturedBitmap: StateFlow<Bitmap?> = _capturedBitmap.asStateFlow()
+
     // Recipes filter
     private val _selectedRecipeCategory = MutableStateFlow("All")
     val selectedRecipeCategory: StateFlow<String> = _selectedRecipeCategory.asStateFlow()
@@ -89,7 +100,7 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
         listOf(
             ChatMessage(
                 sender = MessageSender.AI_COACH,
-                text = "Hello! I'm Vyntra AI Coach. Ask me anything about your macros, diet recommendations (bulk/cut), exercise form, or healthy recipe swaps."
+                text = "Hello! I'm Vyntra AI Coach. Ask me anything about your custom bulk/cut diet, macros, training volume, or real food alternatives."
             )
         )
     )
@@ -103,6 +114,22 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
         repository = NutriLensRepository(db)
         viewModelScope.launch {
             repository.seedInitialDataIfEmpty()
+            val profile = repository.userProfile.firstOrNull()
+            if (profile == null || !profile.onboardingCompleted) {
+                _currentScreen.value = Screen.Onboarding
+            } else {
+                _customDietPlan.value = DietPlanGenerator.generatePlan(
+                    name = profile.name,
+                    age = profile.age,
+                    gender = profile.gender,
+                    weightKg = profile.weightKg,
+                    heightCm = profile.heightCm,
+                    activityLevel = profile.activityLevel,
+                    goal = profile.goal,
+                    dietaryPreference = profile.dietaryRestriction,
+                    customCalorieTarget = profile.dailyCalorieTarget
+                )
+            }
         }
     }
 
@@ -161,6 +188,7 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun scanImage(bitmap: Bitmap) {
         viewModelScope.launch {
+            _capturedBitmap.value = bitmap
             _scanState.value = ScanUiState.Scanning
             val result = geminiService.analyzeFoodImage(bitmap)
             result.fold(
@@ -171,18 +199,69 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
                     _currentScreen.value = Screen.FoodDetail
                 },
                 onFailure = { err ->
-                    // Fall back gracefully to sample preset if API key is invalid/unavailable
-                    val fallbackFood = PresetData.sampleScanFoods.first()
-                    _currentScannedFood.value = fallbackFood
-                    _servingMultiplier.value = 1.0f
-                    _scanState.value = ScanUiState.Success(fallbackFood)
-                    _currentScreen.value = Screen.FoodDetail
+                    val errorMsg = err.message ?: "Could not detect food details"
+                    _scanState.value = ScanUiState.Error(errorMsg)
                 }
             )
         }
     }
 
+    fun dismissScanError() {
+        _scanState.value = ScanUiState.Idle
+    }
+
+    fun setManualFood(
+        name: String,
+        calories: Int,
+        protein: Int,
+        carbs: Int,
+        fat: Int,
+        portionGrams: Int = 200,
+        description: String = "Real food logged by user",
+        dietaryTag: String = "Real Food"
+    ) {
+        val food = FoodScanResult(
+            name = name.ifBlank { "Custom Meal" },
+            calories = calories.coerceAtLeast(10),
+            protein = protein.coerceAtLeast(0),
+            carbs = carbs.coerceAtLeast(0),
+            fat = fat.coerceAtLeast(0),
+            portionGrams = portionGrams,
+            description = description,
+            ingredients = listOf("Real whole food ingredients"),
+            micronutrients = "Custom calibrated nutrients",
+            dietaryTag = dietaryTag
+        )
+        _currentScannedFood.value = food
+        _servingMultiplier.value = 1.0f
+        _scanState.value = ScanUiState.Success(food)
+        _currentScreen.value = Screen.FoodDetail
+    }
+
+    fun logDietPlanMeal(meal: DietPlanMeal) {
+        viewModelScope.launch {
+            val portionNum = meal.portion.filter { it.isDigit() }.toIntOrNull() ?: 250
+            val mealEntity = MealEntity(
+                name = meal.title,
+                mealType = meal.mealType,
+                calories = meal.calories,
+                protein = meal.protein,
+                carbs = meal.carbs,
+                fat = meal.fat,
+                portionGrams = portionNum,
+                date = _selectedDate.value,
+                imageUrl = meal.imageUrl,
+                description = meal.preparation,
+                ingredients = meal.ingredients.joinToString(", "),
+                micronutrients = "Diet Plan (${meal.dietaryTag})"
+            )
+            repository.insertMeal(mealEntity)
+            _currentScreen.value = Screen.Dashboard
+        }
+    }
+
     fun selectPresetFood(food: FoodScanResult) {
+        _capturedBitmap.value = null
         _currentScannedFood.value = food
         _servingMultiplier.value = 1.0f
         _scanState.value = ScanUiState.Success(food)
@@ -312,54 +391,53 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
     fun updateProfile(
         name: String,
         age: Int,
+        gender: String,
         weightKg: Float,
         heightCm: Float,
         activityLevel: String,
         goal: String,
-        restriction: String
+        dietaryPreference: String,
+        customCalorieTarget: Int? = null
     ) {
-        // Calculate BMR using Mifflin-St Jeor equation:
-        // BMR = 10 * weight(kg) + 6.25 * height(cm) - 5 * age + 5 (standard male base)
-        val bmr = (10 * weightKg + 6.25f * heightCm - 5 * age + 5).toInt()
-        val activityMultiplier = when (activityLevel) {
-            "Sedentary" -> 1.2f
-            "Moderate" -> 1.45f
-            "Active" -> 1.65f
-            else -> 1.8f
-        }
-        val maintenanceCalories = (bmr * activityMultiplier).toInt()
-
-        val dailyCalories = when (goal) {
-            "BULK" -> maintenanceCalories + 400
-            "CUT" -> (maintenanceCalories - 500).coerceAtLeast(1400)
-            else -> maintenanceCalories
-        }
-
-        // Macro splits:
-        // Protein: 2.0g per kg (4 kcal/g)
-        val proteinGrams = (weightKg * 2.0f).toInt()
-        val proteinCalories = proteinGrams * 4
-        // Fat: 25% of daily calories (9 kcal/g)
-        val fatCalories = (dailyCalories * 0.25f).toInt()
-        val fatGrams = fatCalories / 9
-        // Carbs: remainder of calories (4 kcal/g)
-        val carbsCalories = (dailyCalories - proteinCalories - fatCalories).coerceAtLeast(200)
-        val carbsGrams = carbsCalories / 4
-
-        val newProfile = UserProfileEntity(
-            id = 1,
-            name = name.ifBlank { "Yohanan Rashad" },
+        val metrics = DietPlanGenerator.calculateMetrics(
             age = age,
+            gender = gender,
             weightKg = weightKg,
             heightCm = heightCm,
             activityLevel = activityLevel,
             goal = goal,
-            dietaryRestriction = restriction,
-            dailyCalorieTarget = dailyCalories,
-            dailyProteinTarget = proteinGrams,
-            dailyCarbsTarget = carbsGrams,
-            dailyFatTarget = fatGrams,
-            dailyWaterTargetFlOz = 64,
+            customCalorieTarget = customCalorieTarget
+        )
+
+        val plan = DietPlanGenerator.generatePlan(
+            name = name,
+            age = age,
+            gender = gender,
+            weightKg = weightKg,
+            heightCm = heightCm,
+            activityLevel = activityLevel,
+            goal = goal,
+            dietaryPreference = dietaryPreference,
+            customCalorieTarget = customCalorieTarget
+        )
+        _customDietPlan.value = plan
+
+        val newProfile = UserProfileEntity(
+            id = 1,
+            name = name.ifBlank { "Athlete" },
+            age = age,
+            gender = gender,
+            weightKg = weightKg,
+            heightCm = heightCm,
+            activityLevel = activityLevel,
+            goal = goal,
+            dietaryRestriction = dietaryPreference,
+            dailyCalorieTarget = metrics.targetCalories,
+            dailyProteinTarget = metrics.proteinGrams,
+            dailyCarbsTarget = metrics.carbsGrams,
+            dailyFatTarget = metrics.fatGrams,
+            dailyWaterTargetFlOz = metrics.waterFlOz,
+            customDietPlanJson = "",
             onboardingCompleted = true
         )
 

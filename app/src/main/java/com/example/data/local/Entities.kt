@@ -26,19 +26,21 @@ data class MealEntity(
 data class UserProfileEntity(
     @PrimaryKey
     val id: Int = 1,
-    val name: String = "Yohanan Rashad",
-    val age: Int = 26,
+    val name: String = "Athlete",
+    val age: Int = 25,
+    val gender: String = "Male", // Male, Female, Other
     val weightKg: Float = 75f,
     val heightCm: Float = 178f,
-    val activityLevel: String = "Moderate",
-    val goal: String = "CUT", // BULK, CUT, MAINTAIN
-    val dietaryRestriction: String = "None",
+    val activityLevel: String = "Moderate", // Sedentary, Moderate, Active, Very Active
+    val goal: String = "MAINTAIN", // BULK, MAINTAIN, LOSE_WEIGHT
+    val dietaryRestriction: String = "Both Veg & Non-Veg", // Vegetarian, Vegan, Non-Vegetarian, Both Veg & Non-Veg
     val dailyCalorieTarget: Int = 2400,
     val dailyProteinTarget: Int = 160,
     val dailyCarbsTarget: Int = 220,
     val dailyFatTarget: Int = 65,
     val dailyWaterTargetFlOz: Int = 64,
-    val onboardingCompleted: Boolean = true
+    val customDietPlanJson: String = "",
+    val onboardingCompleted: Boolean = false
 )
 
 @Entity(tableName = "water_logs")

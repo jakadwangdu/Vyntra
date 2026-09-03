@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -215,15 +216,15 @@ fun DashboardScreen(
             }
         }
 
-        // GitHub Releases, Actions & Packages Quick Install Banner
+        // Custom AI Diet Plan Banner
         item {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .border(1.dp, NutriBorder, RoundedCornerShape(14.dp))
-                    .clickable { showDownloadSheet = true }
-                    .testTag("dashboard_github_banner"),
+                    .clickable { viewModel.navigateTo(Screen.DietPlan) }
+                    .testTag("dashboard_diet_plan_banner"),
                 color = NutriBlack,
                 shape = RoundedCornerShape(14.dp)
             ) {
@@ -244,7 +245,7 @@ fun DashboardScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Download,
+                                imageVector = Icons.Filled.Restaurant,
                                 contentDescription = null,
                                 tint = NutriBlack,
                                 modifier = Modifier.size(18.dp)
@@ -253,7 +254,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Get Vyntra APK",
+                                text = "Custom AI Diet Plan",
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
@@ -261,7 +262,7 @@ fun DashboardScreen(
                                 color = NutriWhite
                             )
                             Text(
-                                text = "GitHub Releases • Actions • Packages",
+                                text = "AI-calibrated daily nutrition & macros",
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                 color = NutriGray
                             )
@@ -274,7 +275,7 @@ fun DashboardScreen(
                             .padding(horizontal = 9.dp, vertical = 5.dp)
                     ) {
                         Text(
-                            text = "INSTALL",
+                            text = "VIEW",
                             color = NutriGreenAccent,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,

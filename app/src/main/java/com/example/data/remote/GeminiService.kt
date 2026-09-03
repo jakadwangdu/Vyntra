@@ -54,7 +54,8 @@ class GeminiService {
             val prompt = """
                 You are Vyntra AI, an expert clinical nutritionist and computer vision nutrition analyzer.
                 Examine this food photo carefully.
-                Identify the primary dish/food and accurately calculate its macronutrients and key micronutrients.
+                Identify the primary dish/food and accurately calculate its portion weight (grams), calories, macronutrients, and key micronutrients.
+                Also classify the diet type ("Vegetarian", "Vegan", "Non-Vegetarian").
                 Return strictly valid JSON with the following schema, NO markdown, NO backticks:
                 {
                   "name": "Food Name",
@@ -63,9 +64,10 @@ class GeminiService {
                   "carbs": 38,
                   "fat": 12,
                   "portionGrams": 220,
-                  "description": "Short appetizing description and nutritional highlight (max 2 sentences)",
+                  "description": "Precise appetizing description and clinical nutritional highlight (max 2 sentences)",
                   "ingredients": ["Ingredient 1", "Ingredient 2", "Ingredient 3"],
-                  "micronutrients": "e.g. Calcium: 12% DV, Iron: 8% DV, Potassium: 340mg"
+                  "micronutrients": "e.g. Calcium: 12% DV, Iron: 8% DV, Potassium: 340mg",
+                  "dietaryTag": "Vegetarian"
                 }
             """.trimIndent()
 
@@ -96,7 +98,7 @@ class GeminiService {
             }
 
             val requestBody = rootJson.toString().toRequestBody(jsonMediaType)
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
 
             val request = Request.Builder()
                 .url(url)
@@ -140,7 +142,8 @@ class GeminiService {
                 portionGrams = parsed.optInt("portionGrams", 150),
                 description = parsed.optString("description", "A balanced nutritious dish identified by Vyntra AI."),
                 ingredients = ingredientsList,
-                micronutrients = parsed.optString("micronutrients", "Calcium: 10% DV, Iron: 6% DV, Potassium: 280mg")
+                micronutrients = parsed.optString("micronutrients", "Calcium: 10% DV, Iron: 6% DV, Potassium: 280mg"),
+                dietaryTag = parsed.optString("dietaryTag", "Balanced")
             )
 
             Result.success(result)
@@ -218,7 +221,7 @@ class GeminiService {
             }
 
             val requestBody = rootJson.toString().toRequestBody(jsonMediaType)
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
 
             val request = Request.Builder()
                 .url(url)

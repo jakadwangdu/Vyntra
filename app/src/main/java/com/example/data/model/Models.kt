@@ -10,7 +10,8 @@ data class FoodScanResult(
     val description: String,
     val ingredients: List<String>,
     val micronutrients: String,
-    val imageUrl: String = ""
+    val imageUrl: String = "",
+    val dietaryTag: String = ""
 )
 
 data class ChatMessage(

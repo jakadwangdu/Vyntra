@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.components.NutriBottomBar
 import com.example.ui.screens.ChatbotScreen
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.DietPlanScreen
 import com.example.ui.screens.FoodDetailScreen
 import com.example.ui.screens.FoodScannerScreen
 import com.example.ui.screens.OnboardingScreen
@@ -75,6 +76,7 @@ fun NutriLensApp(viewModel: NutriLensViewModel) {
                     is Screen.FoodDetail -> FoodDetailScreen(viewModel = viewModel)
                     is Screen.Recipes -> RecipesScreen(viewModel = viewModel)
                     is Screen.Workout -> WorkoutScreen(viewModel = viewModel)
+                    is Screen.DietPlan -> DietPlanScreen(viewModel = viewModel)
                     is Screen.Chatbot -> ChatbotScreen(viewModel = viewModel)
                     is Screen.Onboarding -> OnboardingScreen(viewModel = viewModel)
                 }

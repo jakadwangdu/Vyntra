@@ -52,80 +52,25 @@ class NutriLensRepository(private val database: AppDatabase) {
 
     suspend fun seedInitialDataIfEmpty() {
         val profile = profileDao.getUserProfile().firstOrNull()
-        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-
         if (profile == null) {
             profileDao.insertOrUpdate(
                 UserProfileEntity(
                     id = 1,
-                    name = "Yohanan Rashad",
-                    age = 26,
-                    weightKg = 76f,
-                    heightCm = 180f,
+                    name = "Athlete",
+                    age = 25,
+                    gender = "Male",
+                    weightKg = 75f,
+                    heightCm = 178f,
                     activityLevel = "Moderate",
-                    goal = "CUT",
-                    dietaryRestriction = "None",
+                    goal = "MAINTAIN",
+                    dietaryRestriction = "Both Veg & Non-Veg",
                     dailyCalorieTarget = 2400,
-                    dailyProteinTarget = 150,
+                    dailyProteinTarget = 160,
                     dailyCarbsTarget = 220,
                     dailyFatTarget = 65,
                     dailyWaterTargetFlOz = 64,
-                    onboardingCompleted = true
-                )
-            )
-        }
-
-        val todayMeals = mealDao.getMealsByDate(todayStr).firstOrNull()
-        if (todayMeals.isNullOrEmpty()) {
-            // Seed initial breakfast and snack to match reference image UI
-            mealDao.insertMeal(
-                MealEntity(
-                    name = "Avocado & Egg Toast",
-                    mealType = "Breakfast",
-                    calories = 365,
-                    protein = 18,
-                    carbs = 34,
-                    fat = 17,
-                    portionGrams = 180,
-                    date = todayStr,
-                    imageUrl = "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=500",
-                    description = "Whole grain sourdough topped with smashed avocado, poached eggs, and microgreens.",
-                    ingredients = "Sourdough Bread, Hass Avocado, Poached Eggs, Olive Oil, Chili Flakes",
-                    micronutrients = "Potassium: 420mg, Iron: 12% DV, Vitamin E: 15% DV"
-                )
-            )
-            mealDao.insertMeal(
-                MealEntity(
-                    name = "Greek Yogurt Bowl",
-                    mealType = "Breakfast",
-                    calories = 195,
-                    protein = 16,
-                    carbs = 22,
-                    fat = 5,
-                    portionGrams = 200,
-                    date = todayStr,
-                    imageUrl = "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500",
-                    description = "Strained Greek yogurt loaded with blueberries, chia seeds, and raw honeycomb.",
-                    ingredients = "Greek Yogurt, Fresh Blueberries, Chia Seeds, Honey",
-                    micronutrients = "Calcium: 20% DV, Probiotics: 1B CFU, Vitamin C: 10% DV"
-                )
-            )
-            // Seed 1 workout
-            workoutDao.insertWorkout(
-                WorkoutLogEntity(
-                    date = todayStr,
-                    title = "Morning HIIT & Core",
-                    category = "Fat Burn HIIT",
-                    durationMinutes = 28,
-                    caloriesBurned = 345
-                )
-            )
-            // Seed water log (4 glasses = 32 fl oz)
-            waterDao.insertOrUpdateWaterLog(
-                WaterLogEntity(
-                    date = todayStr,
-                    flOz = 32,
-                    glasses = 4
+                    customDietPlanJson = "",
+                    onboardingCompleted = false
                 )
             )
         }
