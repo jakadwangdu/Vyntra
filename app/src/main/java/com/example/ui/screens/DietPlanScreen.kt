@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -77,6 +78,10 @@ fun DietPlanScreen(
     val dietPlan by viewModel.customDietPlan.collectAsStateWithLifecycle()
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     var loggedMealTitle by remember { mutableStateOf<String?>(null) }
+
+    BackHandler {
+        viewModel.navigateTo(Screen.Dashboard)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

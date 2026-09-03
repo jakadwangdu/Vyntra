@@ -101,6 +101,10 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
     private val _recipeSearchQuery = MutableStateFlow("")
     val recipeSearchQuery: StateFlow<String> = _recipeSearchQuery.asStateFlow()
 
+    // AI Food Search
+    private val _isAiFoodSearching = MutableStateFlow(false)
+    val isAiFoodSearching: StateFlow<Boolean> = _isAiFoodSearching.asStateFlow()
+
     // Chatbot
     private val _chatMessages = MutableStateFlow<List<ChatMessage>>(
         listOf(
@@ -298,6 +302,33 @@ class NutriLensViewModel(application: Application) : AndroidViewModel(applicatio
         _servingMultiplier.value = 1.0f
         _scanState.value = ScanUiState.Success(food)
         _currentScreen.value = Screen.FoodDetail
+    }
+
+    fun searchAndAnalyzeFoodName(query: String, onComplete: (() -> Unit)? = null) {
+        if (query.isBlank()) return
+        viewModelScope.launch {
+            _isAiFoodSearching.value = true
+            _capturedBitmap.value = null
+            val result = geminiService.analyzeFoodByName(query)
+            result.fold(
+                onSuccess = { food ->
+                    _currentScannedFood.value = food
+                    _servingMultiplier.value = 1.0f
+                    _scanState.value = ScanUiState.Success(food)
+                    _currentScreen.value = Screen.FoodDetail
+                },
+                onFailure = {
+                    // Fallback to preset or custom food
+                    val fallback = PresetData.sampleScanFoods.first()
+                    _currentScannedFood.value = fallback.copy(name = query)
+                    _servingMultiplier.value = 1.0f
+                    _scanState.value = ScanUiState.Success(fallback)
+                    _currentScreen.value = Screen.FoodDetail
+                }
+            )
+            _isAiFoodSearching.value = false
+            onComplete?.invoke()
+        }
     }
 
     fun logCurrentFoodAsMeal(mealType: String) {

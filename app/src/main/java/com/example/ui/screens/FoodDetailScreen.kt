@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,6 +72,10 @@ fun FoodDetailScreen(
 ) {
     val food = viewModel.currentScannedFood.collectAsStateWithLifecycle().value
     val servingMultiplier by viewModel.servingMultiplier.collectAsStateWithLifecycle()
+
+    BackHandler {
+        viewModel.navigateTo(Screen.Dashboard)
+    }
 
     var selectedMealType by remember { mutableStateOf("Lunch") }
     var isBookmarked by remember { mutableStateOf(false) }

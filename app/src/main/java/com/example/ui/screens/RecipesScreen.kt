@@ -24,6 +24,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
+import com.example.ui.theme.NutriGreenAccent
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Search
@@ -69,6 +75,7 @@ fun RecipesScreen(
 ) {
     val selectedCategory by viewModel.selectedRecipeCategory.collectAsStateWithLifecycle()
     val searchQuery by viewModel.recipeSearchQuery.collectAsStateWithLifecycle()
+    val isAiSearching by viewModel.isAiFoodSearching.collectAsStateWithLifecycle()
 
     val cuisineCategories = listOf(
         "All" to "🌐 All",
@@ -142,6 +149,13 @@ fun RecipesScreen(
                         tint = NutriGray
                     )
                 },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { viewModel.setRecipeSearchQuery("") }) {
+                            Icon(imageVector = Icons.Filled.Close, contentDescription = "Clear", tint = NutriGray)
+                        }
+                    }
+                },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -153,6 +167,108 @@ fun RecipesScreen(
                     unfocusedBorderColor = NutriBorder
                 )
             )
+        }
+
+        // AI Search Analysis Option
+        if (searchQuery.isNotBlank()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF141414))
+                        .clickable {
+                            viewModel.searchAndAnalyzeFoodName(searchQuery)
+                        }
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(NutriGreenAccent.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isAiSearching) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = NutriGreenAccent,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Filled.AutoAwesome,
+                                        contentDescription = "AI Analysis",
+                                        tint = NutriGreenAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "AI Nutrient Breakdown",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        ),
+                                        color = NutriWhite
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(NutriGreenAccent)
+                                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "GEMINI",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = NutriBlack
+                                            )
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Analyze calories, protein & micros for \"$searchQuery\"",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = Color(0xFFAAAAAA),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(NutriGreenAccent)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "ANALYZE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = NutriBlack
+                                )
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // Category Filter Chips (All, Indian, French, Japanese, Italian, etc.)

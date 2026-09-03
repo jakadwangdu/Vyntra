@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
@@ -97,6 +98,10 @@ fun FoodScannerScreen(
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
     val realtimeAnalysis by viewModel.realtimeAnalysis.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    BackHandler {
+        viewModel.navigateTo(Screen.Dashboard)
+    }
 
     var isFlashOn by remember { mutableStateOf(false) }
     var zoomLevel by remember { mutableStateOf("1x") }

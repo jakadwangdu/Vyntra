@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,6 +72,10 @@ fun ChatbotScreen(
     val messages by viewModel.chatMessages.collectAsStateWithLifecycle()
     val isLoading by viewModel.isChatLoading.collectAsStateWithLifecycle()
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+
+    BackHandler {
+        viewModel.navigateTo(Screen.Dashboard)
+    }
 
     var textInput by remember { mutableStateOf("") }
     val listState = rememberLazyListState()

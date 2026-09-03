@@ -4,7 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,12 +26,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
+import com.example.ui.components.GestureNavigationHost
 import com.example.ui.components.GlobalSearchOverlay
 import com.example.ui.components.NutriBottomBar
+import com.example.ui.components.primaryScreens
 import com.example.ui.screens.ChatbotScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.DietPlanScreen
@@ -58,34 +63,10 @@ fun NutriLensApp(viewModel: NutriLensViewModel) {
             currentScreen is Screen.Workout
 
     var showGlobalSearch by remember { mutableStateOf(false) }
-    var startY by remember { mutableStateOf(0f) }
-    val configuration = LocalConfiguration.current
-    val density = LocalDensity.current
-    val topEighthPx = remember(configuration, density) {
-        with(density) { (configuration.screenHeightDp / 8).dp.toPx() }
-    }
+    val isAiFoodSearching by viewModel.isAiFoodSearching.collectAsStateWithLifecycle()
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        val pointer = event.changes.firstOrNull()
-                        if (pointer != null) {
-                            if (pointer.pressed && !pointer.previousPressed) {
-                                startY = pointer.position.y
-                            } else if (pointer.pressed && pointer.previousPressed) {
-                                val currentY = pointer.position.y
-                                if (startY <= topEighthPx && (currentY - startY) > 50f) {
-                                    showGlobalSearch = true
-                                }
-                            }
-                        }
-                    }
-                }
-            },
+        modifier = Modifier.fillMaxSize(),
         bottomBar = {
             if (showBottomBar) {
                 NutriBottomBar(
@@ -95,12 +76,46 @@ fun NutriLensApp(viewModel: NutriLensViewModel) {
             }
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            Crossfade(
-                targetState = currentScreen,
+        GestureNavigationHost(
+            currentScreen = currentScreen,
+            onNavigate = { screen -> viewModel.navigateTo(screen) },
+            onOpenSearch = { showGlobalSearch = true },
+            onOpenScanner = { viewModel.navigateTo(Screen.Scanner) },
+            modifier = Modifier.fillMaxSize()
+        ) { targetScreen ->
+            AnimatedContent(
+                targetState = targetScreen,
+                transitionSpec = {
+                    val initialIndex = primaryScreens.indexOf(initialState)
+                    val targetIndex = primaryScreens.indexOf(targetState)
+                    val slideLeft = if (initialIndex != -1 && targetIndex != -1) {
+                        targetIndex > initialIndex
+                    } else {
+                        targetState is Screen.Scanner || targetState is Screen.FoodDetail || targetState is Screen.Chatbot
+                    }
+
+                    if (slideLeft) {
+                        (slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(320, easing = FastOutSlowInEasing)
+                        ) + fadeIn(tween(320))).togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> -fullWidth / 3 },
+                                animationSpec = tween(320, easing = FastOutSlowInEasing)
+                            ) + fadeOut(tween(250))
+                        )
+                    } else {
+                        (slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = tween(320, easing = FastOutSlowInEasing)
+                        ) + fadeIn(tween(320))).togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> fullWidth / 3 },
+                                animationSpec = tween(320, easing = FastOutSlowInEasing)
+                            ) + fadeOut(tween(250))
+                        )
+                    }
+                },
                 label = "screen_transition"
             ) { screen ->
                 when (screen) {
@@ -120,7 +135,11 @@ fun NutriLensApp(viewModel: NutriLensViewModel) {
                 onDismiss = { showGlobalSearch = false },
                 onSelectFood = { food ->
                     viewModel.selectPresetFood(food)
-                }
+                },
+                onAnalyzeFoodQuery = { query ->
+                    viewModel.searchAndAnalyzeFoodName(query)
+                },
+                isAiSearching = isAiFoodSearching
             )
         }
     }
