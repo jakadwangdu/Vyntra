@@ -1,0 +1,16 @@
+{
+  "name": "vyntra",
+  "version": "1.0.0",
+  "description": "Vyntra - AI Nutrition Intelligence, Food Vision & Fitness Coaching",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node build.js",
+    "lint": "node -e 'process.exit(0)'"
+  },
+  "keywords": ["nutrition", "ai", "gemini", "android", "fitness"],
+  "author": "Vyntra Team",
+  "license": "Apache-2.0"
+}
