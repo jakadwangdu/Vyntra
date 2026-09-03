@@ -53,8 +53,8 @@ class GeminiService {
 
             val prompt = """
                 You are Vyntra AI, an expert clinical nutritionist and computer vision nutrition analyzer.
-                Examine this food photo carefully.
-                Identify the primary dish/food and accurately calculate its portion weight (grams), calories, macronutrients, and key micronutrients.
+                Examine this food photo carefully. Use the Google Search tool to search the internet for the identified food's most accurate and up-to-date nutritional information.
+                Identify the primary dish/food and accurately calculate its portion weight (grams), calories, macronutrients, and key micronutrients based on your internet search and analysis.
                 Also classify the diet type ("Vegetarian", "Vegan", "Non-Vegetarian").
                 Return strictly valid JSON with the following schema, NO markdown, NO backticks:
                 {
@@ -89,6 +89,13 @@ class GeminiService {
                     put(contentObj)
                 }
                 put("contents", contents)
+                
+                // Add Google Search grounding tool
+                put("tools", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("googleSearch", JSONObject())
+                    })
+                })
 
                 put("generationConfig", JSONObject().apply {
                     put("temperature", 0.2)
@@ -98,7 +105,7 @@ class GeminiService {
             }
 
             val requestBody = rootJson.toString().toRequestBody(jsonMediaType)
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey"
 
             val request = Request.Builder()
                 .url(url)
@@ -221,7 +228,7 @@ class GeminiService {
             }
 
             val requestBody = rootJson.toString().toRequestBody(jsonMediaType)
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey"
 
             val request = Request.Builder()
                 .url(url)
