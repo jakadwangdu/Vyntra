@@ -26,6 +26,12 @@ class GeminiService {
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
+    private fun bitmapToBase64(bitmap: Bitmap): String {
+        val outputStream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+        return Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+    }
+
     private fun getApiKey(): String {
         return try {
             val key = BuildConfig.GEMINI_API_KEY

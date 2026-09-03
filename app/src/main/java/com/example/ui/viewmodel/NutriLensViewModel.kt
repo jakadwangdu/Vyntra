@@ -1,8 +1,8 @@
-import androidx.camera.core.ImageProxy
 package com.example.ui.viewmodel
 
 import android.app.Application
 import android.graphics.Bitmap
+import androidx.camera.core.ImageProxy
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
