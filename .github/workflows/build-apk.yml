@@ -77,6 +77,17 @@ jobs:
           fi
           echo "Temporary debug keystore verified."
 
+      - name: Create .env Configuration
+        run: |
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+          elif [ -f ".env.example" ]; then
+            cp .env.example .env
+          else
+            echo "GEMINI_API_KEY=DEFAULT_GEMINI_API_KEY" > .env
+          fi
+          echo ".env configuration prepared."
+
       - name: Build debug APK
         run: |
           gradle :app:assembleDebug --stacktrace --no-daemon

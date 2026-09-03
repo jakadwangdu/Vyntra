@@ -467,8 +467,9 @@ EOF
           elif [ -f ".env.example" ]; then
             cp .env.example .env
           else
-            echo "GEMINI_API_KEY=" > .env
+            echo "GEMINI_API_KEY=DEFAULT_GEMINI_API_KEY" > .env
           fi
+          echo ".env configuration prepared."
 
       - name: Build Android APK
         run: |
@@ -476,23 +477,29 @@ EOF
           if [ -f "./gradlew" ] && [ -f "gradle/wrapper/gradle-wrapper.jar" ]; then
             echo "Using existing Gradle Wrapper..."
             chmod +x ./gradlew
-            ./gradlew assembleDebug --no-configuration-cache --stacktrace
+            ./gradlew :app:assembleDebug --no-daemon --stacktrace
           else
             echo "Building with installed Gradle..."
-            gradle assembleDebug --no-configuration-cache --stacktrace
+            gradle :app:assembleDebug --no-daemon --stacktrace
           fi
 
       - name: Prepare APK Asset
         run: |
           mkdir -p release_assets
-          APK_PATH=$(find . -name "*.apk" -not -path "*/release_assets/*" | head -n 1)
-          if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
-            cp "$APK_PATH" release_assets/Vyntra.apk
+          EXPECTED_APK="app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$EXPECTED_APK" ]; then
+            cp "$EXPECTED_APK" release_assets/Vyntra.apk
             echo "APK successfully prepared at release_assets/Vyntra.apk ($(du -h release_assets/Vyntra.apk | cut -f1))"
           else
-            echo "::error::Build completed but no APK was found in build outputs!"
-            find . -maxdepth 4 -ls
-            exit 1
+            APK_PATH=$(find app/build/outputs/apk -name "*.apk" -not -path "*/release_assets/*" | head -n 1)
+            if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
+              cp "$APK_PATH" release_assets/Vyntra.apk
+              echo "APK successfully prepared from fallback $APK_PATH at release_assets/Vyntra.apk ($(du -h release_assets/Vyntra.apk | cut -f1))"
+            else
+              echo "::error::Build completed but no APK was found in build outputs!"
+              find . -maxdepth 4 -ls
+              exit 1
+            fi
           fi
 
       - name: Determine Version Tag

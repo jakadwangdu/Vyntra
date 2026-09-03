@@ -28,7 +28,12 @@ class GeminiService {
 
     private fun getApiKey(): String {
         return try {
-            BuildConfig.GEMINI_API_KEY
+            val key = BuildConfig.GEMINI_API_KEY
+            if (key.isBlank() || key == "YOUR_GEMINI_API_KEY" || key == "DEFAULT_KEY" || key == "DEFAULT_GEMINI_API_KEY" || key.contains("PLACEHOLDER", ignoreCase = true)) {
+                ""
+            } else {
+                key
+            }
         } catch (e: Exception) {
             ""
         }
