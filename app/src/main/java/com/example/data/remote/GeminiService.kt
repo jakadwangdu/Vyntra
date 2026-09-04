@@ -484,12 +484,13 @@ class GeminiService {
         if (query.isBlank()) {
             return@withContext Result.failure(IllegalArgumentException("Food query cannot be empty"))
         }
+        val sanitizedQuery = query.replace("\"", "'").replace("\n", " ").take(100)
 
         if (apiKey.isNotBlank()) {
             try {
                 val prompt = """
                     You are Vyntra AI, an expert sports dietitian, culinary scientist, and clinical nutritionist.
-                    The user is searching for this food or dish: "$query".
+                    The user is searching for this food or dish: "$sanitizedQuery".
                     Analyze this food item thoroughly. Provide accurate nutritional estimates for a realistic standard single serving:
                     - Accurate portion weight in grams
                     - Total calories (kcal)

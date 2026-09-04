@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Icon
@@ -28,6 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -60,22 +63,22 @@ fun CalorieSummaryCard(
     targetFat: Int,
     modifier: Modifier = Modifier
 ) {
-    val progress = if (targetCalories > 0) {
-        (caloriesEaten.toFloat() / targetCalories.toFloat()).coerceIn(0f, 1f)
-    } else 0f
+    val totalAvailable = (targetCalories + caloriesBurned).coerceAtLeast(1)
+    val progress = (caloriesEaten.toFloat() / totalAvailable.toFloat()).coerceIn(0f, 1f)
+    val percentage = (progress * 100).toInt()
 
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = tween(durationMillis = 900),
         label = "calorie_progress"
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(26.dp))
             .background(NutriWhite)
-            .border(1.dp, NutriBorder, RoundedCornerShape(24.dp))
+            .border(1.2.dp, Color(0xFFEBEBE8), RoundedCornerShape(26.dp))
             .padding(20.dp)
     ) {
         Column(
@@ -87,24 +90,30 @@ fun CalorieSummaryCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Calorie Ring Gauge
+                // Calorie Ring Gauge with Modern Glow
                 Box(
-                    modifier = Modifier.size(130.dp),
+                    modifier = Modifier.size(136.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.size(120.dp)) {
-                        val strokeWidth = 10.dp.toPx()
+                    Canvas(modifier = Modifier.size(126.dp)) {
+                        val strokeWidth = 11.dp.toPx()
                         // Track background
                         drawArc(
-                            color = Color(0xFFEFEFEF),
+                            color = Color(0xFFF0F0EE),
                             startAngle = -90f,
                             sweepAngle = 360f,
                             useCenter = false,
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
-                        // Progress arc (olive green from mockup)
+                        // Progress arc
                         drawArc(
-                            color = NutriGreenAccent,
+                            brush = Brush.sweepGradient(
+                                listOf(
+                                    NutriGreenAccent,
+                                    Color(0xFF86A374),
+                                    NutriGreenAccent
+                                )
+                            ),
                             startAngle = -90f,
                             sweepAngle = animatedProgress * 360f,
                             useCenter = false,
@@ -118,87 +127,127 @@ fun CalorieSummaryCard(
                         Text(
                             text = String.format("%,d", caloriesLeft),
                             style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 24.sp
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 24.sp,
+                                letterSpacing = (-0.5).sp
                             ),
                             color = NutriBlack
                         )
                         Text(
                             text = "Calories left",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.sp
+                            ),
                             color = NutriGray
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFEAF5E5))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "$percentage% Met",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                ),
+                                color = NutriGreenAccent
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Right stats: Eaten & Burned
+                // Right stats: Eaten & Burned Cards
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Eaten Stat
+                    // Eaten Stat Pill
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFF7FAF6))
+                            .border(1.dp, Color(0xFFE5EFE3), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
-                                .background(Color(0xFFE8F3E8), CircleShape),
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(NutriWhite)
+                                .border(1.dp, Color(0xFFD6E8D3), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Restaurant,
                                 contentDescription = "Eaten",
                                 tint = NutriGreenAccent,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "${caloriesEaten} cal",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                text = "${caloriesEaten} kcal",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                ),
                                 color = NutriBlack
                             )
                             Text(
-                                text = "Eaten",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "Intake Eaten",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = NutriGray
                             )
                         }
                     }
 
-                    // Burned Stat
+                    // Burned Stat Pill
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFFFF7F7))
+                            .border(1.dp, Color(0xFFFFECEC), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
-                                .background(Color(0xFFFFEFEF), CircleShape),
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(NutriWhite)
+                                .border(1.dp, Color(0xFFFFDEDE), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.LocalFireDepartment,
                                 contentDescription = "Burned",
                                 tint = NutriBurnRed,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "${caloriesBurned} cal",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                text = "${caloriesBurned} kcal",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                ),
                                 color = NutriBlack
                             )
                             Text(
-                                text = "Burned",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "Burned Activity",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = NutriGray
                             )
                         }
@@ -206,12 +255,17 @@ fun CalorieSummaryCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Lower Row: 3 Macro Progress Bars (Carbs, Protein, Fats)
+            // Lower Row: 3 Elevated Macro Progress Columns (Carbs, Protein, Fats)
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFFFAFAFA))
+                    .border(1.dp, Color(0xFFEFEFEF), RoundedCornerShape(16.dp))
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 MacroColumnItem(
                     label = "Carbs",
@@ -248,41 +302,68 @@ fun MacroColumnItem(
     modifier: Modifier = Modifier
 ) {
     val progress = if (target > 0) (current.toFloat() / target.toFloat()).coerceIn(0f, 1f) else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 700),
+        label = "${label}_macro"
+    )
 
     Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = NutriDarkGray
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                ),
+                color = NutriDarkGray
+            )
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(accentColor)
+            )
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Row(
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
                 text = "$current",
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 13.sp
+                ),
                 color = NutriBlack
             )
             Text(
                 text = "/${target}g",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp
+                ),
                 color = NutriGray
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
-        // Progress bar
+        // Modern rounded progress track
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)
-                .background(Color(0xFFEEEEEE), RoundedCornerShape(3.dp))
+                .clip(RoundedCornerShape(3.dp))
+                .background(Color(0xFFE8E8E8))
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(progress)
+                    .fillMaxWidth(animatedProgress)
                     .height(6.dp)
-                    .background(accentColor, RoundedCornerShape(3.dp))
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(accentColor)
             )
         }
     }
