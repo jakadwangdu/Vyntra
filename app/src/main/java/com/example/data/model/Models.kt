@@ -13,7 +13,13 @@ data class FoodScanResult(
     val imageUrl: String = "",
     val dietaryTag: String = "",
     val cuisine: String = "Global",
-    val countryFlag: String = "🌐"
+    val countryFlag: String = "🌐",
+    val fiber: Int = 4,
+    val sugar: Int = 3,
+    val sodium: Int = 240,
+    val healthBenefits: List<String> = emptyList(),
+    val bestTiming: String = "Meal / Post-Workout",
+    val allergens: String = "None"
 )
 
 data class ChatMessage(

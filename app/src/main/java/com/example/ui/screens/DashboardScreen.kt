@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloudDownload
@@ -32,14 +34,21 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -98,6 +107,8 @@ fun DashboardScreen(
     val currentFat = meals.sumOf { it.fat }
 
     var mealToDelete by remember { mutableStateOf<MealEntity?>(null) }
+    var foodSearchQuery by remember { mutableStateOf("") }
+    val isAiFoodSearching by viewModel.isAiFoodSearching.collectAsStateWithLifecycle()
 
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
@@ -221,6 +232,173 @@ fun DashboardScreen(
                                 .size(7.dp)
                                 .background(NutriBurnRed, CircleShape)
                         )
+                    }
+                }
+            }
+        }
+
+        // Ask Gemini Food Search Bar & AI Analyzer Card
+        item {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, NutriBorder, RoundedCornerShape(16.dp)),
+                color = NutriWhite,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.AutoAwesome,
+                                contentDescription = null,
+                                tint = NutriGreenAccent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Search Food with Gemini AI",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = NutriBlack
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFE8F5E9))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "FLASH 3.5",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp,
+                                    color = NutriGreenAccent
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = foodSearchQuery,
+                        onValueChange = { foodSearchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("dashboard_gemini_food_input"),
+                        placeholder = {
+                            Text(
+                                text = "Enter any food name (e.g. Biryani, Salmon Bowl)...",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = NutriGray
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Search",
+                                tint = NutriBlack,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            if (isAiFoodSearching) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = NutriGreenAccent
+                                )
+                            } else if (foodSearchQuery.isNotBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(NutriBlack)
+                                        .clickable {
+                                            viewModel.searchAndAnalyzeFoodName(foodSearchQuery)
+                                        }
+                                        .testTag("dashboard_gemini_search_submit"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.ArrowForward,
+                                        contentDescription = "Analyze Food",
+                                        tint = NutriWhite,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = NutriBlack,
+                            unfocusedTextColor = NutriBlack,
+                            focusedContainerColor = Color(0xFFFBFBFA),
+                            unfocusedContainerColor = Color(0xFFFBFBFA),
+                            focusedBorderColor = NutriGreenAccent,
+                            unfocusedBorderColor = NutriBorder
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                if (foodSearchQuery.isNotBlank()) {
+                                    viewModel.searchAndAnalyzeFoodName(foodSearchQuery)
+                                }
+                            }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Quick AI Search Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            "🍛 Paneer Butter Masala",
+                            "🥑 Avocado Toast",
+                            "🍜 Tonkotsu Ramen",
+                            "🥗 Quinoa Greek Salad",
+                            "🥤 Whey Protein Shake",
+                            "🌮 Chicken Fajitas"
+                        ).forEach { tag ->
+                            val cleanName = tag.substringAfter(" ")
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFF3F3F3))
+                                    .clickable {
+                                        foodSearchQuery = cleanName
+                                        viewModel.searchAndAnalyzeFoodName(cleanName)
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = NutriBlack
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -476,7 +476,7 @@ class GeminiService {
 
     /**
      * AI-powered food name analyzer that calculates complete nutritional breakdown,
-     * macros, ingredients, and micronutrients for any food search query.
+     * macros, fiber, sugar, sodium, ingredients, health benefits, timing, and micronutrients for any food search query.
      */
     suspend fun analyzeFoodByName(foodQuery: String): Result<FoodScanResult> = withContext(Dispatchers.IO) {
         val apiKey = getApiKey()
@@ -488,11 +488,22 @@ class GeminiService {
         if (apiKey.isNotBlank()) {
             try {
                 val prompt = """
-                    You are Vyntra AI, an expert sports dietitian and clinical nutrition scientist.
+                    You are Vyntra AI, an expert sports dietitian, culinary scientist, and clinical nutritionist.
                     The user is searching for this food or dish: "$query".
-                    Analyze this food item in detail. Estimate realistic standard single-serving portion size in grams, total calories, macronutrients (protein, carbs, fat in grams), key real ingredients, detailed micronutrient breakdown (e.g. Iron, Calcium, Potassium, Vitamins), primary cuisine type, country emoji flag, and dietary classification ("Vegetarian", "Vegan", "Non-Vegetarian", "High Protein", etc.).
-                    Provide an appetizing and clinically informative 2-sentence description highlighting health benefits.
-                    
+                    Analyze this food item thoroughly. Provide accurate nutritional estimates for a realistic standard single serving:
+                    - Accurate portion weight in grams
+                    - Total calories (kcal)
+                    - Macronutrients: protein, total carbohydrates, fat (grams)
+                    - Fiber (grams), Sugar (grams), Sodium (milligrams)
+                    - Authentic key ingredients
+                    - Comprehensive micronutrient breakdown (e.g. Iron, Calcium, Potassium, Magnesium, Zinc, Vitamins with % DV)
+                    - 2 to 3 key science-backed health benefits (e.g. muscle repair, sustained energy, heart health)
+                    - Optimal consumption timing (e.g. "Post-Workout Fuel", "Balanced Lunch", "Sustained Energy Breakfast", "Light Evening Dinner")
+                    - Potential allergens (e.g. "Contains Dairy, Tree Nuts", "Gluten-Free", "None")
+                    - Primary cuisine type and country emoji flag
+                    - Dietary classification ("Vegetarian", "Vegan", "High-Protein", "Keto-Friendly", "Low-Carb", etc.)
+                    - Appetizing and clinically informative 2-sentence description highlighting health value.
+
                     Return strictly valid JSON with NO markdown code fences or backticks:
                     {
                       "name": "Standardized Dish Name",
@@ -500,11 +511,17 @@ class GeminiService {
                       "protein": 28,
                       "carbs": 45,
                       "fat": 14,
+                      "fiber": 6,
+                      "sugar": 5,
+                      "sodium": 340,
                       "portionGrams": 300,
                       "description": "Appetizing description and nutritional highlight.",
                       "ingredients": ["Ingredient 1", "Ingredient 2", "Ingredient 3", "Ingredient 4"],
-                      "micronutrients": "Iron: 20% DV, Calcium: 15% DV, Potassium: 450mg, Vitamin C: 25% DV",
-                      "dietaryTag": "Vegetarian",
+                      "micronutrients": "Iron: 22% DV, Calcium: 18% DV, Potassium: 520mg, Vitamin C: 30% DV, Zinc: 15% DV",
+                      "healthBenefits": ["Promotes lean muscle repair and satiety", "Rich in fiber supporting steady blood glucose", "High in antioxidant polyphenols"],
+                      "bestTiming": "Post-Workout / Balanced Lunch",
+                      "allergens": "None",
+                      "dietaryTag": "High-Protein",
                       "cuisine": "Indian",
                       "countryFlag": "🇮🇳"
                     }
@@ -555,16 +572,33 @@ class GeminiService {
                         }
                     }
 
+                    val benefitsList = mutableListOf<String>()
+                    val benefitsArray = parsed.optJSONArray("healthBenefits")
+                    if (benefitsArray != null) {
+                        for (i in 0 until benefitsArray.length()) {
+                            benefitsList.add(benefitsArray.getString(i))
+                        }
+                    }
+
                     val scannedResult = FoodScanResult(
                         name = parsed.optString("name", query.replaceFirstChar { it.uppercase() }),
                         calories = parsed.optInt("calories", 350),
                         protein = parsed.optInt("protein", 20),
                         carbs = parsed.optInt("carbs", 40),
                         fat = parsed.optInt("fat", 12),
+                        fiber = parsed.optInt("fiber", 5),
+                        sugar = parsed.optInt("sugar", 4),
+                        sodium = parsed.optInt("sodium", 280),
                         portionGrams = parsed.optInt("portionGrams", 250),
                         description = parsed.optString("description", "AI analyzed nutritional profile for $query."),
                         ingredients = if (ingredientsList.isNotEmpty()) ingredientsList else listOf("Whole Food Ingredients", "Natural Seasoning"),
-                        micronutrients = parsed.optString("micronutrients", "Calcium: 12% DV, Iron: 10% DV, Potassium: 380mg"),
+                        micronutrients = parsed.optString("micronutrients", "Calcium: 14% DV, Iron: 12% DV, Potassium: 420mg, Vitamin C: 20% DV"),
+                        healthBenefits = if (benefitsList.isNotEmpty()) benefitsList else listOf(
+                            "Balanced macronutrient profile supporting all-day energy",
+                            "Provides essential vitamins and dietary minerals for metabolic health"
+                        ),
+                        bestTiming = parsed.optString("bestTiming", "Balanced Meal"),
+                        allergens = parsed.optString("allergens", "None"),
                         dietaryTag = parsed.optString("dietaryTag", "Balanced"),
                         cuisine = parsed.optString("cuisine", "Global"),
                         countryFlag = parsed.optString("countryFlag", "🍽️")
@@ -599,10 +633,20 @@ class GeminiService {
                     protein = 28,
                     carbs = 62,
                     fat = 18,
+                    fiber = 6,
+                    sugar = 4,
+                    sodium = 480,
                     portionGrams = 350,
-                    description = "Aromatic spiced dish prepared with rich herbs, traditional spices, and balanced macros.",
+                    description = "Aromatic spiced dish prepared with rich herbs, traditional spices, and balanced macronutrients.",
                     ingredients = listOf("Basmati Rice", "Aromatic Spices (Cumin, Garam Masala)", "Tomatoes & Onions", "Protein Blend", "Fresh Herbs"),
                     micronutrients = "Iron: 22% DV, Calcium: 14% DV, Potassium: 480mg, Magnesium: 55mg",
+                    healthBenefits = listOf(
+                        "Turmeric & ginger provide potent anti-inflammatory curcuminoids",
+                        "High protein density aids muscular protein synthesis",
+                        "Complex carbohydrates ensure sustained glycogen replenishment"
+                    ),
+                    bestTiming = "Post-Workout Lunch",
+                    allergens = if ("paneer" in q) "Contains Dairy" else "None",
                     dietaryTag = if ("paneer" in q || "dal" in q) "Vegetarian" else "Non-Vegetarian",
                     cuisine = "Indian",
                     countryFlag = "🇮🇳"
@@ -615,10 +659,20 @@ class GeminiService {
                     protein = 26,
                     carbs = 54,
                     fat = 15,
+                    fiber = 4,
+                    sugar = 5,
+                    sodium = 650,
                     portionGrams = 320,
                     description = "Authentic Japanese inspired preparation rich in umami, lean protein, and mineral broth.",
                     ingredients = listOf("Artisanal Noodles/Rice", "Dashi Umami Broth", "Scallions & Nori", "Tender Protein", "Sesame Oil"),
                     micronutrients = "Sodium: 35% DV, Iron: 16% DV, Vitamin B12: 25% DV, Zinc: 20% DV",
+                    healthBenefits = listOf(
+                        "Collagen-rich broth supports joint and connective tissue recovery",
+                        "Seaweed & nori deliver essential dietary iodine and trace minerals",
+                        "Lean protein promotes clean satiety without heavy digestion"
+                    ),
+                    bestTiming = "Lunch / Post-Training Recovery",
+                    allergens = "Contains Soy & Wheat (Gluten)",
                     dietaryTag = if ("tofu" in q || "veg" in q) "Vegetarian" else "Pescatarian",
                     cuisine = "Japanese",
                     countryFlag = "🇯🇵"
@@ -631,10 +685,19 @@ class GeminiService {
                     protein = 14,
                     carbs = 42,
                     fat = 20,
+                    fiber = 2,
+                    sugar = 6,
+                    sodium = 310,
                     portionGrams = 200,
                     description = "Classic French culinary specialty crafted with fine artisanal techniques and golden flake texture.",
                     ingredients = listOf("Fine Wheat Flour", "French Cultured Butter", "Farm Fresh Eggs", "Sea Salt"),
                     micronutrients = "Calcium: 10% DV, Iron: 8% DV, Vitamin A: 15% DV",
+                    healthBenefits = listOf(
+                        "Readily accessible carbohydrates for rapid morning energy",
+                        "Natural butter lipids provide fat-soluble vitamin absorption"
+                    ),
+                    bestTiming = "Breakfast / Morning Fuel",
+                    allergens = "Contains Dairy, Wheat & Eggs",
                     dietaryTag = "Vegetarian",
                     cuisine = "French",
                     countryFlag = "🇫🇷"
@@ -647,10 +710,20 @@ class GeminiService {
                     protein = 24,
                     carbs = 68,
                     fat = 19,
+                    fiber = 5,
+                    sugar = 6,
+                    sodium = 520,
                     portionGrams = 320,
                     description = "Traditional Italian favorite combining slow-simmered sauces, olive oil, and aged cheese.",
                     ingredients = listOf("Durum Semolina Wheat", "San Marzano Tomatoes", "Extra Virgin Olive Oil", "Parmigiano-Reggiano", "Fresh Basil"),
                     micronutrients = "Calcium: 24% DV, Iron: 15% DV, Lycopene: High, Potassium: 380mg",
+                    healthBenefits = listOf(
+                        "Cooked San Marzano tomatoes provide bioavailable antioxidant lycopene",
+                        "High complex carb volume ideal for pre-workout carb loading",
+                        "Extra virgin olive oil provides cardioprotective monounsaturated fats"
+                    ),
+                    bestTiming = "Pre-Workout / Dinner",
+                    allergens = "Contains Dairy & Wheat",
                     dietaryTag = if ("meat" in q || "carbonara" in q) "Non-Vegetarian" else "Vegetarian",
                     cuisine = "Italian",
                     countryFlag = "🇮🇹"
@@ -663,10 +736,20 @@ class GeminiService {
                     protein = 30,
                     carbs = 48,
                     fat = 18,
+                    fiber = 8,
+                    sugar = 3,
+                    sodium = 440,
                     portionGrams = 290,
                     description = "Vibrant Mexican recipe packed with slow-cooked meats, fresh cilantro, lime, and avocado.",
                     ingredients = listOf("Tortillas", "Seasoned Protein", "Avocado & Lime", "Cilantro & Onion", "Pinto/Black Beans"),
                     micronutrients = "Folate: 30% DV, Iron: 20% DV, Potassium: 510mg, Vitamin C: 22% DV",
+                    healthBenefits = listOf(
+                        "Avocado delivers healthy oleic acid and heart-healthy potassium",
+                        "High fiber from legumes promotes healthy gut microbiome",
+                        "Complete amino acid profile supports muscle rebuilding"
+                    ),
+                    bestTiming = "Lunch / Post-Workout",
+                    allergens = if ("cheese" in q) "Contains Dairy" else "None",
                     dietaryTag = if ("bean" in q || "cheese" in q) "Vegetarian" else "Non-Vegetarian",
                     cuisine = "Mexican",
                     countryFlag = "🇲🇽"
@@ -679,10 +762,20 @@ class GeminiService {
                     protein = 16,
                     carbs = 30,
                     fat = 14,
+                    fiber = 9,
+                    sugar = 5,
+                    sodium = 190,
                     portionGrams = 260,
                     description = "Nutrient-dense clean superfood bowl high in antioxidants, dietary fiber, and healthy monounsaturated fats.",
                     ingredients = listOf("Baby Mixed Greens", "Hass Avocado", "Seeds & Nuts", "Cold-Pressed Olive Oil", "Lemon Vinaigrette"),
                     micronutrients = "Vitamin K: 95% DV, Vitamin A: 60% DV, Folate: 45% DV, Potassium: 560mg",
+                    healthBenefits = listOf(
+                        "Extremely dense in phytonutrients and cellular antioxidants",
+                        "High dietary fiber stabilizes blood glucose and promotes satiety",
+                        "Alkalizing leafy greens support overall metabolic balance"
+                    ),
+                    bestTiming = "Light Lunch / Dinner Starter",
+                    allergens = if ("nuts" in q || "seed" in q) "Contains Tree Nuts/Seeds" else "None",
                     dietaryTag = "Vegan",
                     cuisine = "Mediterranean",
                     countryFlag = "🥗"
@@ -695,10 +788,20 @@ class GeminiService {
                     protein = 35,
                     carbs = 24,
                     fat = 6,
+                    fiber = 5,
+                    sugar = 8,
+                    sodium = 160,
                     portionGrams = 350,
                     description = "High-bioavailability protein blend formulated for optimal muscle protein synthesis and fast recovery.",
                     ingredients = listOf("Whey/Plant Isolate Protein", "Almond/Oat Milk", "Banana", "Chia Seeds", "Natural Cocoa/Vanilla"),
-                    micronutrients = "Calcium: 35% DV, B-Complex: 40% DV, Potassium: 420mg",
+                    micronutrients = "Calcium: 35% DV, B-Complex: 40% DV, Potassium: 420mg, Magnesium: 60mg",
+                    healthBenefits = listOf(
+                        "Fast-absorbing BCAAs and leucine trigger instant mTOR muscle synthesis",
+                        "Easily digestible liquid nutrition accelerates post-exercise replenishment",
+                        "Natural electrolytes prevent cramping and support cellular hydration"
+                    ),
+                    bestTiming = "Immediate Post-Workout (0-45 min)",
+                    allergens = if ("whey" in q || "milk" in q) "Contains Milk/Dairy" else "None",
                     dietaryTag = "High Protein",
                     cuisine = "Global",
                     countryFlag = "🥤"
@@ -711,10 +814,19 @@ class GeminiService {
                     protein = 22,
                     carbs = 46,
                     fat = 14,
+                    fiber = 5,
+                    sugar = 4,
+                    sodium = 320,
                     portionGrams = 280,
-                    description = "Balanced meal featuring wholesome ingredients, clean energy sources, and complete macronutrients.",
+                    description = "Balanced whole food meal featuring clean ingredients, steady energy sources, and complete macronutrients.",
                     ingredients = listOf("Whole Food Base", "Lean Protein", "Complex Carbohydrates", "Healthy Fats", "Herbs & Seasoning"),
-                    micronutrients = "Iron: 15% DV, Calcium: 12% DV, Potassium: 390mg, Vitamin C: 18% DV",
+                    micronutrients = "Iron: 16% DV, Calcium: 14% DV, Potassium: 410mg, Vitamin C: 20% DV",
+                    healthBenefits = listOf(
+                        "Balanced macronutrient ratio for steady metabolic output",
+                        "Provides essential vitamins and minerals for daily wellness"
+                    ),
+                    bestTiming = "Balanced Meal",
+                    allergens = "None",
                     dietaryTag = "Balanced",
                     cuisine = "Global",
                     countryFlag = "🍽️"

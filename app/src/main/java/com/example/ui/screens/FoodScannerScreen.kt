@@ -37,15 +37,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -105,6 +113,115 @@ fun FoodScannerScreen(
 
     var isFlashOn by remember { mutableStateOf(false) }
     var zoomLevel by remember { mutableStateOf("1x") }
+    var showGeminiSearchDialog by remember { mutableStateOf(false) }
+    var geminiSearchInput by remember { mutableStateOf("") }
+    val isAiFoodSearching by viewModel.isAiFoodSearching.collectAsStateWithLifecycle()
+
+    if (showGeminiSearchDialog) {
+        AlertDialog(
+            onDismissRequest = { showGeminiSearchDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AutoAwesome,
+                        contentDescription = null,
+                        tint = NutriGreenAccent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Gemini AI Food Search",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = NutriBlack
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Enter any food or recipe name to generate a complete nutritional profile with calories, macros, micronutrients, and health insights.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF616161)
+                    )
+
+                    OutlinedTextField(
+                        value = geminiSearchInput,
+                        onValueChange = { geminiSearchInput = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("scanner_gemini_search_input"),
+                        placeholder = { Text("e.g. Avocado Toast, Butter Chicken...") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NutriGreenAccent,
+                            unfocusedBorderColor = Color(0xFFD0D0D0)
+                        )
+                    )
+
+                    // Quick Suggested Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("🍛 Biryani", "🥗 Greek Salad", "🥑 Acai Bowl", "🍜 Ramen", "🥤 Protein Shake").forEach { chip ->
+                            val clean = chip.substringAfter(" ")
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFF0F0F0))
+                                    .clickable { geminiSearchInput = clean }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = chip,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    color = NutriBlack
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (geminiSearchInput.isNotBlank()) {
+                            showGeminiSearchDialog = false
+                            viewModel.searchAndAnalyzeFoodName(geminiSearchInput)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NutriBlack,
+                        contentColor = NutriWhite
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.testTag("scanner_gemini_search_submit")
+                ) {
+                    if (isAiFoodSearching) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = NutriWhite
+                        )
+                    } else {
+                        Text("Search & Analyze")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGeminiSearchDialog = false }) {
+                    Text("Cancel", color = NutriBlack)
+                }
+            },
+            containerColor = NutriWhite,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
 
     // Selected viewfinder preview image. Now nullable. If null, we show CameraX preview.
     var selectedPreviewUrl by remember { mutableStateOf<String?>(null) }
@@ -345,22 +462,45 @@ fun FoodScannerScreen(
                 )
             }
 
-            // Flash button
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(NutriWhite.copy(alpha = 0.9f))
-                    .clickable { isFlashOn = !isFlashOn }
-                    .testTag("scanner_flash_button"),
-                contentAlignment = Alignment.Center
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (isFlashOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
-                    contentDescription = "Flash",
-                    tint = NutriBlack,
-                    modifier = Modifier.size(20.dp)
-                )
+                // Gemini Search Button
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(NutriWhite.copy(alpha = 0.9f))
+                        .clickable { showGeminiSearchDialog = true }
+                        .testTag("scanner_search_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = "Search food name with Gemini",
+                        tint = NutriBlack,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Flash button
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(NutriWhite.copy(alpha = 0.9f))
+                        .clickable { isFlashOn = !isFlashOn }
+                        .testTag("scanner_flash_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isFlashOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
+                        contentDescription = "Flash",
+                        tint = NutriBlack,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
